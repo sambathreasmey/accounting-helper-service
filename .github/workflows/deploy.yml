@@ -39,7 +39,7 @@ jobs:
         run: |
           uv venv --clear
           uv pip install fastapi-cli
-          uv run fastapi deploy
+          .venv/bin/fastapi deploy
         env:
           FASTAPI_CLOUD_TOKEN: ${{ secrets.FASTAPI_CLOUD_TOKEN }}
           FASTAPI_CLOUD_APP_ID: ${{ secrets.FASTAPI_CLOUD_APP_ID }}
