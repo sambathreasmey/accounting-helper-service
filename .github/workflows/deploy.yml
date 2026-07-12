@@ -30,7 +30,7 @@ jobs:
         with:
           enable-cache: true
       - name: Execute Live Deployment
-        run: uvx run fastapi deploy
+        run: uvx fastapi-cli deploy
         env:
           FASTAPI_CLOUD_TOKEN: ${{ secrets.FASTAPI_CLOUD_TOKEN }}
           FASTAPI_CLOUD_APP_ID: ${{ secrets.FASTAPI_CLOUD_APP_ID }}
