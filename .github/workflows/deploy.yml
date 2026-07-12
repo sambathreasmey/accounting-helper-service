@@ -32,10 +32,10 @@ jobs:
           enable-cache: true
 
       - name: Execute Live Deployment
-        # The --system flag tells uv it is safe to install the tool on the GitHub runner
         run: |
-          uv pip install fastapi-cli --system
-          fastapi deploy
+          uv venv
+          uv pip install fastapi-cli
+          uv run fastapi deploy
         env:
           FASTAPI_CLOUD_TOKEN: ${{ secrets.FASTAPI_CLOUD_TOKEN }}
           FASTAPI_CLOUD_APP_ID: ${{ secrets.FASTAPI_CLOUD_APP_ID }}
