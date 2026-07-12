@@ -1,6 +1,6 @@
-
 from fastapi import FastAPI, HTTPException, status
 from app.core.config import settings
+
 
 def create_app() -> FastAPI:
 
@@ -8,7 +8,7 @@ def create_app() -> FastAPI:
         title="Accounting Helper Service",
         docs_url=None if settings.ENVIRONMENT == "production" else "/docs",
         redoc_url=None if settings.ENVIRONMENT == "production" else "/redoc",
-        openapi_url=None if settings.ENVIRONMENT == "production" else "/openapi.json"
+        openapi_url=None if settings.ENVIRONMENT == "production" else "/openapi.json",
     )
 
     @app.get("/healthz", status_code=status.HTTP_200_OK, tags=["System"])
@@ -20,13 +20,14 @@ def create_app() -> FastAPI:
         except Exception as err:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"Database connectivity issue: {str(err)}"
+                detail=f"Database connectivity issue: {str(err)}",
             )
-    
+
     @app.get("/")
     def main():
         return {"message": "ជោគជ័យទៀតហើយ"}
-    
+
     return app
 
-app = create_app()  
+
+app = create_app()
