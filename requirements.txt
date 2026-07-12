@@ -13,5 +13,9 @@ httpx>=0.27.0
 # Redis (idempotency / dedupe for webhook updates)
 redis>=5.0.0
 
+# Database (Neon/Postgres) — PO history
+sqlalchemy>=2.0.30
+asyncpg>=0.29.0
+
 # Development Utilities
 ruff>=0.3.0

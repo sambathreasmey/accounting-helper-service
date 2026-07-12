@@ -16,7 +16,17 @@ class GitHubDispatchError(Exception):
     """Raised when a repository_dispatch event could not be delivered."""
 
 
-async def trigger_po_generate_workflow(chat_id: int, data: list[dict]) -> None:
+async def trigger_po_generate_workflow(
+    chat_id: int, data: list[dict], po_db_id: str
+) -> None:
+    """
+    Dispatches the po-generate-automation workflow.
+
+    `po_db_id` is threaded through as `client_payload.callback.po_db_id` so
+    the workflow can POST back to `/api/po/callback` (with
+    PO_CALLBACK_SECRET) once the document is generated, closing the
+    pending -> completed/failed loop in our history table.
+    """
     url = (
         f"{GITHUB_API_BASE}/repos/{settings.GITHUB_REPO_OWNER}/"
         f"{settings.GITHUB_REPO_NAME}/dispatches"
@@ -30,6 +40,11 @@ async def trigger_po_generate_workflow(chat_id: int, data: list[dict]) -> None:
         "client_payload": {
             "chat_id": chat_id,
             "invitation_data": {"data": data, "references": []},
+            "callback": {
+                "po_db_id": po_db_id,
+                "url": f"{settings.PUBLIC_BASE_URL.rstrip('/')}/api/po/callback",
+                "secret": settings.PO_CALLBACK_SECRET,
+            },
         },
     }
 
