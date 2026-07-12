@@ -37,7 +37,7 @@ jobs:
 
       - name: Execute Live Deployment
         run: |
-          uvx --from fastapi-cli fastapi deploy
+          uvx --from fastapi-cli python -m fastapi_cli deploy
         env:
           FASTAPI_CLOUD_TOKEN: ${{ secrets.FASTAPI_CLOUD_TOKEN }}
           FASTAPI_CLOUD_APP_ID: ${{ secrets.FASTAPI_CLOUD_APP_ID }}
