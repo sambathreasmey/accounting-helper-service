@@ -26,9 +26,15 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          
+      # Add this step to prepare the environment from requirements.txt
+      - name: Install dependencies
+        run: uv pip install -r requirements.txt
+
       - name: Execute Live Deployment
         run: uv run fastapi deploy
         env:
