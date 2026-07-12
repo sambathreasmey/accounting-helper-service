@@ -35,9 +35,16 @@ jobs:
           enable-cache: true
           python-version: "3.12"
 
+      - name: Install dependencies
+        run: |
+          uv venv
+          uv pip install -r requirements.txt
+          uv pip install fastapi-cli
+
       - name: Execute Live Deployment
         run: |
-          uvx --from fastapi-cli python -m fastapi_cli deploy
+          source .venv/bin/activate
+          fastapi deploy
         env:
           FASTAPI_CLOUD_TOKEN: ${{ secrets.FASTAPI_CLOUD_TOKEN }}
           FASTAPI_CLOUD_APP_ID: ${{ secrets.FASTAPI_CLOUD_APP_ID }}
