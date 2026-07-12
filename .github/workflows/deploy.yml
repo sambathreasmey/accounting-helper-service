@@ -37,7 +37,7 @@ jobs:
 
       - name: Execute Live Deployment
         run: |
-          uv venv
+          uv venv --clear
           uv pip install fastapi-cli
           uv run fastapi deploy
         env:
