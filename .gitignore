@@ -1,7 +1,8 @@
 # Deployment metadata
 .fastapicloud/
 
-# Python virtual environment
+# Python virtual environments
+.venv/
 venv/
 
 # Python bytecode cache
