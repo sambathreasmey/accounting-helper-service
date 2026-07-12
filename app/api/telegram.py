@@ -17,7 +17,9 @@ async def telegram_webhook(
     x_telegram_bot_api_secret_token: str | None = Header(default=None),
 ):
     if x_telegram_bot_api_secret_token != settings.TELEGRAM_WEBHOOK_SECRET:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid secret token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid secret token"
+        )
 
     update = await request.json()
     update_id = update.get("update_id")

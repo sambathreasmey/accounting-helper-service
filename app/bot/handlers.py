@@ -15,7 +15,9 @@ async def handle_update(update: dict) -> None:
 
     try:
         if text == "/start":
-            await telegram_client.send_message(chat_id, "👋 Welcome! I'm up and running.")
+            await telegram_client.send_message(
+                chat_id, "👋 Welcome! I'm up and running."
+            )
         else:
             await telegram_client.send_message(chat_id, f"You said: {text}")
     except Exception:
