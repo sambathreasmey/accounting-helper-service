@@ -6,10 +6,3 @@ uvicorn[standard]>=0.30.0
 # Production Configuration & Validation
 pydantic>=2.0.0
 pydantic-settings>=2.0.0
-
-# Database Connectivity (SQL Server)
-mssql-django>=1.5.0      # Or pyodbc depending on your specific ORM setup
-sqlalchemy>=2.0.0
-
-# Development Utilities (Optional but good to lock down versions)
-ruff>=0.3.0
