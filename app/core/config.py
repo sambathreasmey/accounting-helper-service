@@ -1,15 +1,16 @@
-# app/config.py
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class AppSettings(BaseSettings):
-    # Production defaults or validated requirements
     ENVIRONMENT: str = Field(default="production")
     DATABASE_URL: str
     REDIS_URL: str
 
-    # Restrict to loading from a local .env only during development
+    TELEGRAM_BOT_TOKEN: str
+    TELEGRAM_WEBHOOK_SECRET: str
+    PUBLIC_BASE_URL: str  # e.g. https://myapp.fastapicloud.dev
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 
