@@ -27,7 +27,10 @@ async def trigger_po_generate_workflow(chat_id: int, data: list[dict]) -> None:
     }
     payload = {
         "event_type": "po-generate-trigger",
-        "client_payload": {"chat_id": chat_id, "invitation_data": data},
+        "client_payload": {
+            "chat_id": chat_id,
+            "invitation_data": {"data": data, "references": []},
+        },
     }
 
     last_error: str | None = None

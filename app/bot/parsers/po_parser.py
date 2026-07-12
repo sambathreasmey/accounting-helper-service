@@ -20,10 +20,11 @@ class POItem:
 
     def to_dict(self) -> dict:
         return {
-            "description": self.description,
-            "quantity": self.quantity,
-            "unit": self.unit,
-            "unit_price": self.unit_price,
+            "department": "Kitchen",
+            "name": self.description,
+            "packing": self.unit,
+            "price": self.unit_price,
+            "qty": self.quantity,
         }
 
 
