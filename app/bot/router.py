@@ -20,4 +20,6 @@ async def handle_update(update: dict) -> None:
         else:
             await handle_default_message(chat_id, text)
     except Exception:
-        logger.exception("Unhandled error processing update %s", update.get("update_id"))
+        logger.exception(
+            "Unhandled error processing update %s", update.get("update_id")
+        )

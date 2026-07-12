@@ -42,14 +42,18 @@ async def trigger_po_generate_workflow(chat_id: int, data: list[dict]) -> None:
                     return
 
                 last_error = f"HTTP {response.status_code}: {response.text[:200]}"
-                logger.warning("Attempt %s/%s failed: %s", attempt, MAX_RETRIES, last_error)
+                logger.warning(
+                    "Attempt %s/%s failed: %s", attempt, MAX_RETRIES, last_error
+                )
 
                 if 400 <= response.status_code < 500:
                     break  # Client error — retrying won't help.
 
             except httpx.HTTPError as exc:
                 last_error = str(exc)
-                logger.warning("Attempt %s/%s error: %s", attempt, MAX_RETRIES, last_error)
+                logger.warning(
+                    "Attempt %s/%s error: %s", attempt, MAX_RETRIES, last_error
+                )
 
             if attempt < MAX_RETRIES:
                 await asyncio.sleep(RETRY_DELAY_SECONDS)

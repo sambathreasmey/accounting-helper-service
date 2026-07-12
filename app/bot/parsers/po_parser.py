@@ -61,7 +61,9 @@ def _parse_item_line(line: str, line_no: int) -> POItem:
 
     price_match = PRICE_PATTERN.match(price_token)
     if not price_match:
-        raise POParseError(f"Line {line_no}: could not parse unit price '{price_token}'")
+        raise POParseError(
+            f"Line {line_no}: could not parse unit price '{price_token}'"
+        )
 
     if not description:
         raise POParseError(f"Line {line_no}: missing item description")
