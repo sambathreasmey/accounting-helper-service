@@ -30,13 +30,12 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          
-      # Add this step to prepare the environment from requirements.txt
-      - name: Install dependencies
-        run: uv pip install -r requirements.txt
 
       - name: Execute Live Deployment
-        run: uv run fastapi deploy
+        # The --system flag tells uv it is safe to install the tool on the GitHub runner
+        run: |
+          uv pip install fastapi-cli --system
+          fastapi deploy
         env:
           FASTAPI_CLOUD_TOKEN: ${{ secrets.FASTAPI_CLOUD_TOKEN }}
           FASTAPI_CLOUD_APP_ID: ${{ secrets.FASTAPI_CLOUD_APP_ID }}
