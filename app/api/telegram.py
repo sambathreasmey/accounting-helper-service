@@ -2,7 +2,7 @@ import logging
 
 from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Request, status
 
-from app.bot.handlers import handle_update
+from app.bot.router import handle_update
 from app.core.config import settings
 from app.services.redis_client import is_duplicate_update
 
