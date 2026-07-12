@@ -15,8 +15,8 @@ jobs:
       
       - name: Code Verification
         run: |
-          uv run ruff check .
-          uv run ruff format --check .
+          uvx ruff check .
+          uvx ruff format --check .
 
   deploy:
     name: "Production Deployment"
