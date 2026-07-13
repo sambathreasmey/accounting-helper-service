@@ -1,0 +1,42 @@
+name: "Production Delivery Pipeline"
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  quality-gate:
+    name: "Lints & Code Quality"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: "3.12"
+
+      - name: Code Verification
+        run: |
+          uvx ruff check .
+          uvx ruff format --check .
+
+  deploy:
+    name: "Production Deployment"
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: "3.12"
+
+      - name: Deploy to FastAPI Cloud
+        run: uvx --from "fastapi[standard]" fastapi deploy
+        env:
+          FASTAPI_CLOUD_TOKEN: ${{ secrets.FASTAPI_CLOUD_TOKEN }}
+          FASTAPI_CLOUD_APP_ID: ${{ secrets.FASTAPI_CLOUD_APP_ID }}

@@ -9,7 +9,6 @@ from app.db.crud import get_po, set_status
 from app.db.database import get_session
 from app.db.models import POStatus
 from app.schemas.po import POCallbackRequest
-from app.services.redis_client import cache_invalidate_chat
 from app.services.telegram_client import telegram_client
 
 logger = logging.getLogger("po.callback")
@@ -59,7 +58,6 @@ async def po_generation_callback(
         file_url=body.file_url,
         github_run_id=body.github_run_id,
     )
-    await cache_invalidate_chat(po.chat_id)
 
     if new_status is POStatus.COMPLETED:
         text = f"✅ {po.po_id} ({po.supplier_name}) is ready!"

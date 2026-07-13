@@ -10,7 +10,6 @@ class POItemIn(BaseModel):
 
 
 class RegeneratePORequest(BaseModel):
-    po_id: str = Field(min_length=1)
     supplier_name: str
     items: list[POItemIn] = Field(min_length=1)
 

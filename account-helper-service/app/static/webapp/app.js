@@ -101,23 +101,6 @@ function renderList(container, items, emptyMessage, emptyIcon = "📭") {
   items.forEach((po, i) => container.appendChild(poCard(po, i)));
 }
 
-async function loadMe() {
-  try {
-    const me = await api("/api/webapp/me");
-    const header = document.getElementById("user-header");
-    const greeting = document.getElementById("user-greeting");
-    const avatar = document.getElementById("user-avatar");
-    greeting.textContent = `Hi, ${me.first_name || "there"} 👋`;
-    if (me.photo_url) {
-      avatar.src = me.photo_url;
-      avatar.classList.remove("hidden");
-    }
-    header.classList.remove("hidden");
-  } catch (e) {
-    // Non-critical — dashboard still works without the greeting.
-  }
-}
-
 async function loadDashboard() {
   const statsEl = document.getElementById("stats");
   const recentEl = document.getElementById("recent-list");
@@ -232,18 +215,6 @@ function renderDetail(po) {
     </div>
     ${po.error_message ? `<div class="error-text">${escapeHtml(po.error_message)}</div>` : ""}
     ${po.file_url ? `<a class="link-btn" href="${po.file_url}" target="_blank">📄 Open generated document</a>` : ""}
-
-    ${
-      editable
-        ? `
-      <div class="row-labels"><span>PO ID</span><span colspan="3" style="grid-column: span 3;">Supplier</span></div>
-      <div class="header-edit-row">
-        <input id="edit-po-id" value="${escapeAttr(po.po_id)}" placeholder="PO ID" />
-        <input id="edit-supplier" value="${escapeAttr(po.supplier_name)}" placeholder="Supplier name" />
-      </div>
-    `
-        : ""
-    }
 
     <div class="row-labels"><span>Item</span><span>Qty</span><span>Unit</span><span>Price</span></div>
     <div id="items-editor">${po.items.map(itemRow).join("")}</div>

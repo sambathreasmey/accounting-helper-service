@@ -6,7 +6,7 @@ class POParseError(Exception):
     """Raised when a message can't be parsed into purchase order data."""
 
 
-HEADER_PATTERN = re.compile(r"^(?P<supplier>.+?)\s+(?P<po_id>[A-Za-z0-9][A-Za-z0-9\-_/]*)$")
+HEADER_PATTERN = re.compile(r"^(?P<supplier>.+?)\s+(?P<po_id>PO-\d+)$", re.IGNORECASE)
 QTY_PATTERN = re.compile(r"^(?P<amount>[\d.,]+)\s*(?P<unit>[a-zA-Z]*)$")
 PRICE_PATTERN = re.compile(r"^\$?\s*(?P<amount>[\d.,]+)\s*\$?$")
 
@@ -87,13 +87,11 @@ def parse_po_message(text: str) -> list[PurchaseOrder]:
     """
     Parses one or more purchase orders from a message like:
 
-        Supplier Name PO-ID
+        Supplier Name PO-00001
         - Description QTY UnitPrice$
         - Description QTY UnitPrice$
 
-    The PO-ID can be any short code (e.g. "PO-00001", "07", "INV-42") — it
-    doesn't have to start with "PO-". Multiple orders can appear
-    back-to-back in a single message.
+    Multiple orders can appear back-to-back in a single message.
     """
     lines = [line for line in text.strip().splitlines() if line.strip()]
     if not lines:
@@ -116,8 +114,8 @@ def parse_po_message(text: str) -> list[PurchaseOrder]:
         header_match = HEADER_PATTERN.match(line)
         if not header_match:
             raise POParseError(
-                f"Line {line_no}: expected 'Supplier Name PO-ID' (e.g. 'Thai Hout PO-00001' "
-                f"or 'Sand bakery 07'), got '{line}'"
+                f"Line {line_no}: expected 'Supplier Name PO-ID' (e.g. 'Thai Hout PO-00001'), "
+                f"got '{line}'"
             )
 
         current = PurchaseOrder(

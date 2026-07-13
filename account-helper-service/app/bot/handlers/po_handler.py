@@ -6,20 +6,14 @@ from app.db.crud import create_po, get_po, set_status
 from app.db.database import async_session_maker
 from app.db.models import POStatus
 from app.services.github_client import GitHubDispatchError, trigger_po_generate_workflow
-from app.services.redis_client import cache_invalidate_chat
 from app.services.telegram_client import telegram_client
 
 logger = logging.getLogger("bot.po_handler")
 
 
 def looks_like_po_message(text: str) -> bool:
-    """
-    Cheap heuristic to route a message to the PO handler: any line starting
-    with '-' looks like an item line ('- Description Qty Price$'), which
-    only ever shows up in PO messages. Doesn't require a literal 'PO-'
-    prefix, since PO codes can be arbitrary (e.g. '07', 'INV-42').
-    """
-    return any(line.strip().startswith("-") for line in text.strip().splitlines())
+    """Cheap heuristic to route a message to the PO handler."""
+    return "PO-" in text.upper()
 
 
 async def handle_po_message(chat_id: int, text: str) -> None:
@@ -52,7 +46,6 @@ async def handle_po_message(chat_id: int, text: str) -> None:
                 items=[item.to_dict() for item in order.items],
                 raw_text=text,
             )
-            await cache_invalidate_chat(chat_id)
             await _dispatch(session, po_record.id, chat_id, order)
 
 
@@ -62,12 +55,10 @@ async def _dispatch(session, po_db_id, chat_id: int, order) -> None:
         await trigger_po_generate_workflow(chat_id, data, str(po_db_id))
         po = await get_po(session, po_db_id)
         await set_status(session, po, POStatus.DISPATCHED)
-        await cache_invalidate_chat(chat_id)
     except GitHubDispatchError as exc:
         logger.exception("PO generation dispatch failed for chat_id=%s", chat_id)
         po = await get_po(session, po_db_id)
         await set_status(session, po, POStatus.FAILED, error_message=str(exc))
-        await cache_invalidate_chat(chat_id)
         await telegram_client.send_message(
             chat_id,
             f"❌ Something went wrong triggering PO generation for {order.po_id}. "
