@@ -49,11 +49,16 @@ async def get_me(x_telegram_init_data: str | None = Header(default=None)):
     relying on the client-side (unverified) initDataUnsafe.
     """
     if not x_telegram_init_data:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing X-Telegram-Init-Data")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing X-Telegram-Init-Data",
+        )
     try:
         user = validate_init_data(x_telegram_init_data)
     except InvalidInitData as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)
+        ) from exc
     return {
         "id": user.get("id"),
         "first_name": user.get("first_name"),

@@ -6,7 +6,9 @@ class POParseError(Exception):
     """Raised when a message can't be parsed into purchase order data."""
 
 
-HEADER_PATTERN = re.compile(r"^(?P<supplier>.+?)\s+(?P<po_id>[A-Za-z0-9][A-Za-z0-9\-_/]*)$")
+HEADER_PATTERN = re.compile(
+    r"^(?P<supplier>.+?)\s+(?P<po_id>[A-Za-z0-9][A-Za-z0-9\-_/]*)$"
+)
 QTY_PATTERN = re.compile(r"^(?P<amount>[\d.,]+)\s*(?P<unit>[a-zA-Z]*)$")
 PRICE_PATTERN = re.compile(r"^\$?\s*(?P<amount>[\d.,]+)\s*\$?$")
 
