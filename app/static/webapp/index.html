@@ -10,16 +10,18 @@
 <body>
   <div id="progress-bar"><div id="progress-bar-fill"></div></div>
 
+  <!-- Single, always-visible control bar. Fixed position so it never collides with tabs or header. -->
+  <div id="app-controls">
+    <button id="lang-toggle" class="icon-btn" title="Language">EN</button>
+    <button id="theme-toggle" class="icon-btn" title="Theme">🌙</button>
+  </div>
+
   <div id="app">
     <header id="user-header" class="user-header hidden">
       <img id="user-avatar" class="user-avatar hidden" alt="" />
       <div class="user-header-text">
         <div class="user-greeting" id="user-greeting"></div>
         <div class="user-sub" id="user-sub">Purchase order dashboard</div>
-      </div>
-      <div class="header-controls">
-        <button id="lang-toggle" class="icon-btn" title="Language">EN</button>
-        <button id="theme-toggle" class="icon-btn" title="Theme">🌙</button>
       </div>
     </header>
 
@@ -30,10 +32,6 @@
       <button class="tab" data-tab="history">
         <span class="tab-icon">🗂️</span><span data-i18n="tab_history">History</span>
       </button>
-      <div class="header-controls tabbar-controls">
-        <button id="lang-toggle-compact" class="icon-btn" title="Language">EN</button>
-        <button id="theme-toggle-compact" class="icon-btn" title="Theme">🌙</button>
-      </div>
     </nav>
 
     <main>

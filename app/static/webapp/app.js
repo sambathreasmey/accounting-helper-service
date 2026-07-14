@@ -95,27 +95,22 @@ function applyStaticTranslations() {
   document.getElementById("user-sub").textContent = t("subtitle");
   document.documentElement.lang = i18nState.lang === "km" ? "km" : "en";
   document.getElementById("lang-toggle").textContent = i18nState.lang === "km" ? "KH" : "EN";
-  document.getElementById("lang-toggle-compact").textContent = i18nState.lang === "km" ? "KH" : "EN";
 }
 
 function setLanguage(lang) {
   i18nState.lang = lang;
   localStorage.setItem("po_lang", lang);
   applyStaticTranslations();
-  // Re-render whatever's currently visible so dynamic content (cards, sheet) picks up the new language
   const activePanel = document.querySelector(".tab-panel.active")?.id;
   if (activePanel === "tab-dashboard") loadDashboard();
   if (activePanel === "tab-history") loadHistory();
   if (currentPo) renderDetail(currentPo);
 }
 
-function toggleLanguage() {
+document.getElementById("lang-toggle").addEventListener("click", () => {
   haptic("light");
   setLanguage(i18nState.lang === "km" ? "en" : "km");
-}
-
-document.getElementById("lang-toggle").addEventListener("click", toggleLanguage);
-document.getElementById("lang-toggle-compact").addEventListener("click", toggleLanguage);
+});
 
 // ---------- Theme ----------
 
@@ -127,18 +122,13 @@ function applyTheme(mode) {
   themeState.mode = mode;
   localStorage.setItem("po_theme", mode);
   document.documentElement.setAttribute("data-theme", mode);
-  const icon = mode === "light" ? "☀️" : "🌙";
-  document.getElementById("theme-toggle").textContent = icon;
-  document.getElementById("theme-toggle-compact").textContent = icon;
+  document.getElementById("theme-toggle").textContent = mode === "light" ? "☀️" : "🌙";
 }
 
-function toggleTheme() {
+document.getElementById("theme-toggle").addEventListener("click", () => {
   haptic("light");
   applyTheme(themeState.mode === "light" ? "dark" : "light");
-}
-
-document.getElementById("theme-toggle").addEventListener("click", toggleTheme);
-document.getElementById("theme-toggle-compact").addEventListener("click", toggleTheme);
+});
 
 // ---------- App state ----------
 
