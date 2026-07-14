@@ -2,6 +2,7 @@ const tg = window.Telegram?.WebApp;
 tg?.ready();
 tg?.expand();
 tg?.setHeaderColor?.("secondary_bg_color");
+tg?.disableVerticalSwipes?.(); // prevent accidental app close on scroll, if supported
 
 const initData = tg?.initData || "";
 const haptic = (type = "light") => tg?.HapticFeedback?.impactOccurred?.(type);
@@ -202,6 +203,7 @@ document.querySelectorAll("#status-filters .chip").forEach((chip) => {
 // --- Detail / regenerate sheet ---
 
 let currentPoId = null;
+let currentPo = null; // NEW: keep the full loaded PO object so we don't have to re-parse the DOM
 
 function itemRow(item) {
   return `
@@ -220,6 +222,7 @@ function escapeAttr(s) {
 
 function renderDetail(po) {
   currentPoId = po.id;
+  currentPo = po; // NEW
   const editable = po.status === "failed" || po.status === "completed";
 
   const body = document.getElementById("sheet-body");
@@ -273,10 +276,15 @@ function renderDetail(po) {
 }
 
 async function submitRegenerate() {
+  if (!currentPo) {
+    toast("No order loaded");
+    return;
+  }
+
   const rows = document.querySelectorAll("#items-editor .item-row");
   const items = Array.from(rows)
-    .map((row) => ({
-      department: "Kitchen",
+    .map((row, i) => ({
+      department: currentPo.items[i]?.department || "Kitchen", // preserve original department instead of hardcoding
       name: row.querySelector(".f-name").value.trim(),
       qty: parseFloat(row.querySelector(".f-qty").value) || 0,
       packing: row.querySelector(".f-packing").value.trim(),
@@ -293,11 +301,17 @@ async function submitRegenerate() {
   btn.disabled = true;
   btn.textContent = "Sending…";
 
+  // Read straight from the edit inputs (fall back to the original PO values)
+  // instead of parsing text back out of the rendered title — this was the bug.
+  const supplierName =
+    document.getElementById("edit-supplier")?.value.trim() || currentPo.supplier_name;
+  const poId =
+    document.getElementById("edit-po-id")?.value.trim() || currentPo.po_id;
+
   try {
-    const supplierEl = document.querySelector(".detail-title").textContent.split("—")[1]?.trim();
     await api(`/api/webapp/po/${currentPoId}/regenerate`, {
       method: "POST",
-      body: JSON.stringify({ supplier_name: supplierEl || "Unknown", items }),
+      body: JSON.stringify({ po_id: poId, supplier_name: supplierName, items }),
     });
     haptic("medium");
     toast("Regeneration triggered ✅");
@@ -333,6 +347,8 @@ async function openDetail(id) {
 
 function closeSheet() {
   document.getElementById("detail-sheet").classList.add("hidden");
+  currentPo = null; // NEW: clear stale state so it can't leak into the next sheet
+  currentPoId = null;
 }
 
 document.getElementById("sheet-close").addEventListener("click", () => {
@@ -342,4 +358,5 @@ document.getElementById("sheet-close").addEventListener("click", () => {
 document.querySelector("#detail-sheet .sheet-backdrop").addEventListener("click", closeSheet);
 
 // Initial load
+loadMe();
 loadDashboard();
