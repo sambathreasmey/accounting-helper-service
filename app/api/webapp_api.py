@@ -4,7 +4,14 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import InvalidInitData, validate_init_data
-from app.db.crud import create_po, dashboard_stats, get_po, list_pos, set_status
+from app.db.crud import (
+    create_po,
+    dashboard_stats,
+    delete_po,
+    get_po,
+    list_pos,
+    set_status,
+)
 from app.db.database import get_session
 from app.db.models import POSource, POStatus
 from app.schemas.po import RegeneratePORequest
@@ -17,8 +24,8 @@ router = APIRouter(prefix="/api/webapp", tags=["Mini App"])
 # triggers, short enough that a stale read is never noticeable. Every
 # write path calls cache_invalidate_chat() so this is a pure perf win,
 # not a staleness trade-off in the common case.
-DASHBOARD_CACHE_TTL = 20
-HISTORY_CACHE_TTL = 20
+DASHBOARD_CACHE_TTL = 40
+HISTORY_CACHE_TTL = 40
 
 
 async def get_chat_id(x_telegram_init_data: str | None = Header(default=None)) -> int:
@@ -130,6 +137,20 @@ async def get_po_detail(
     if po is None or po.chat_id != chat_id:
         raise HTTPException(status_code=404, detail="Not found")
     return po.to_dict()
+
+
+@router.delete("/po/{po_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_po_detail(
+    po_id: uuid.UUID,
+    chat_id: int = Depends(get_chat_id),
+    session: AsyncSession = Depends(get_session),
+):
+    po = await get_po(session, po_id)
+    if po is None or po.chat_id != chat_id:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    await delete_po(session, po)
+    await cache_invalidate_chat(chat_id)
 
 
 @router.post("/po/{po_id}/regenerate")

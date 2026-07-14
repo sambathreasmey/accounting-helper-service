@@ -58,6 +58,11 @@ async def get_po(session: AsyncSession, po_uuid: uuid.UUID) -> PurchaseOrder | N
     return await session.get(PurchaseOrder, po_uuid)
 
 
+async def delete_po(session: AsyncSession, po: PurchaseOrder) -> None:
+    await session.delete(po)
+    await session.commit()
+
+
 async def list_pos(
     session: AsyncSession,
     *,

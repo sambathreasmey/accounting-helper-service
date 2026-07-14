@@ -41,6 +41,12 @@ const STRINGS = {
     col_qty: "Qty",
     col_unit: "Unit",
     col_price: "Price",
+    delete: "Delete",
+    delete_confirm_title: "Delete purchase order?",
+    delete_confirm_body: (id) => `"${id}" will be permanently deleted. This can't be undone.`,
+    deleting: "Deleting…",
+    delete_success: "Order deleted",
+    delete_failed: "Couldn't delete order",
   },
   km: {
     subtitle: "ផ្ទាំងគ្រប់គ្រងបញ្ជាទិញ",
@@ -73,6 +79,12 @@ const STRINGS = {
     col_qty: "បរិមាណ",
     col_unit: "ឯកតា",
     col_price: "តម្លៃ",
+    delete: "លុប",
+    delete_confirm_title: "លុបបញ្ជាទិញនេះ?",
+    delete_confirm_body: (id) => `"${id}" នឹងត្រូវបានលុបជាអចិន្ត្រៃយ៍ ។ សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។`,
+    deleting: "កំពុងលុប…",
+    delete_success: "បានលុបបញ្ជាទិញ",
+    delete_failed: "មិនអាចលុបបញ្ជាទិញបានទេ",
   },
 };
 
@@ -161,10 +173,23 @@ async function api(path, options = {}) {
       const body = await res.json().catch(() => ({}));
       throw new Error(body.detail || `Request failed (${res.status})`);
     }
-    return await res.json();
+    if (res.status === 204) return null;
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
   } finally {
     setProgress(false);
   }
+}
+
+function confirmAction(title, body) {
+  return new Promise((resolve) => {
+    if (tg?.showConfirm) {
+      // Telegram's native confirm only takes a single message string.
+      tg.showConfirm(`${title}\n\n${body}`, (ok) => resolve(!!ok));
+    } else {
+      resolve(window.confirm(`${title}\n\n${body}`));
+    }
+  });
 }
 
 function toast(message) {
@@ -191,22 +216,133 @@ function poTotal(po) {
 
 const STATUS_ICON = { pending: "⏳", dispatched: "🚀", completed: "✅", failed: "❌" };
 
+const REVEAL_WIDTH = 76; // px the card slides to expose the delete action
+
 function poCard(po, delayIndex = 0) {
-  const div = document.createElement("div");
-  div.className = "po-card";
-  div.style.animationDelay = `${Math.min(delayIndex, 8) * 35}ms`;
-  div.innerHTML = `
-    <div class="po-card-main">
-      <div class="po-card-title">${po.po_id} — ${escapeHtml(po.supplier_name)}</div>
-      <div class="po-card-sub">${fmtDate(po.created_at)} · $${poTotal(po)}</div>
+  const wrapper = document.createElement("div");
+  wrapper.className = "po-card-wrapper";
+  wrapper.dataset.poId = po.id;
+  wrapper.style.animationDelay = `${Math.min(delayIndex, 8) * 35}ms`;
+
+  wrapper.innerHTML = `
+    <div class="po-card-delete-action">🗑️</div>
+    <div class="po-card">
+      <div class="po-card-main">
+        <div class="po-card-title">${po.po_id} — ${escapeHtml(po.supplier_name)}</div>
+        <div class="po-card-sub">${fmtDate(po.created_at)} · $${poTotal(po)}</div>
+      </div>
+      <span class="badge ${po.status}">${STATUS_ICON[po.status] || ""} ${t(STATUS_KEY[po.status] || "status_pending")}</span>
     </div>
-    <span class="badge ${po.status}">${STATUS_ICON[po.status] || ""} ${t(STATUS_KEY[po.status] || "status_pending")}</span>
   `;
-  div.addEventListener("click", () => {
+
+  const card = wrapper.querySelector(".po-card");
+  const deleteAction = wrapper.querySelector(".po-card-delete-action");
+  attachSwipeToDelete(wrapper, card, po);
+
+  deleteAction.addEventListener("click", () => requestDelete(po, wrapper));
+
+  card.addEventListener("click", () => {
+    // If the card is currently swiped open, a tap just closes it again —
+    // mirrors iOS/Android list behavior instead of opening the detail sheet.
+    if (card.classList.contains("swiped")) {
+      closeSwipe(card);
+      return;
+    }
     haptic("light");
     openDetail(po.id);
   });
-  return div;
+
+  return wrapper;
+}
+
+function closeSwipe(card) {
+  card.classList.remove("swiped");
+  card.style.transform = "";
+}
+
+function attachSwipeToDelete(wrapper, card, po) {
+  let startX = 0;
+  let startY = 0;
+  let dx = 0;
+  let dragging = false;
+  let axisLocked = null; // 'x' | 'y' | null
+
+  const onStart = (clientX, clientY) => {
+    startX = clientX;
+    startY = clientY;
+    dx = card.classList.contains("swiped") ? -REVEAL_WIDTH : 0;
+    dragging = true;
+    axisLocked = null;
+    card.classList.add("dragging");
+  };
+
+  const onMove = (clientX, clientY) => {
+    if (!dragging) return;
+    const deltaX = clientX - startX;
+    const deltaY = clientY - startY;
+
+    if (axisLocked === null) {
+      if (Math.abs(deltaX) < 6 && Math.abs(deltaY) < 6) return;
+      axisLocked = Math.abs(deltaX) > Math.abs(deltaY) ? "x" : "y";
+    }
+    if (axisLocked === "y") return; // let the page scroll vertically
+
+    const base = card.classList.contains("swiped") ? -REVEAL_WIDTH : 0;
+    dx = Math.min(0, Math.max(-REVEAL_WIDTH - 20, base + deltaX));
+    card.style.transform = `translateX(${dx}px)`;
+  };
+
+  const onEnd = () => {
+    if (!dragging) return;
+    dragging = false;
+    card.classList.remove("dragging");
+    if (axisLocked !== "x") return;
+
+    if (dx < -REVEAL_WIDTH / 2) {
+      card.classList.add("swiped");
+      card.style.transform = `translateX(-${REVEAL_WIDTH}px)`;
+      haptic("light");
+    } else {
+      closeSwipe(card);
+    }
+  };
+
+  card.addEventListener("touchstart", (e) => onStart(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+  card.addEventListener("touchmove", (e) => onMove(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+  card.addEventListener("touchend", onEnd);
+  card.addEventListener("touchcancel", onEnd);
+}
+
+async function requestDelete(po, wrapper) {
+  haptic("medium");
+  const ok = await confirmAction(t("delete_confirm_title"), t("delete_confirm_body", po.po_id));
+  if (!ok) {
+    const card = wrapper.querySelector(".po-card");
+    if (card) closeSwipe(card);
+    return;
+  }
+
+  try {
+    await api(`/api/webapp/po/${po.id}`, { method: "DELETE" });
+    haptic("medium");
+    toast(t("delete_success"));
+    // Smooth iOS-style collapse, then refresh whichever data is on screen.
+    wrapper.classList.add("removing");
+    wrapper.addEventListener(
+      "animationend",
+      () => {
+        wrapper.remove();
+        loadDashboard();
+        if (document.getElementById("tab-history").classList.contains("active")) loadHistory();
+      },
+      { once: true }
+    );
+  } catch (e) {
+    haptic("heavy");
+    toast(e.message || t("delete_failed"));
+    const card = wrapper.querySelector(".po-card");
+    if (card) closeSwipe(card);
+  }
 }
 
 function escapeHtml(s) {
@@ -383,9 +519,15 @@ function renderDetail(po) {
       <div class="actions">
         <button class="btn btn-secondary" id="add-item">${t("add_item")}</button>
         <button class="btn btn-primary" id="regenerate-btn">${t("regenerate")}</button>
+        <button class="btn btn-danger" id="delete-po-btn" title="${t("delete")}">🗑️</button>
       </div>
     `
-        : `<div class="detail-sub" style="margin-top:14px;">${t("not_editable", t(STATUS_KEY[po.status] || "status_pending"))}</div>`
+        : `
+      <div class="detail-sub" style="margin-top:14px;">${t("not_editable", t(STATUS_KEY[po.status] || "status_pending"))}</div>
+      <div class="actions">
+        <button class="btn btn-danger" id="delete-po-btn">🗑️ ${t("delete")}</button>
+      </div>
+    `
     }
   `;
 
@@ -397,8 +539,41 @@ function renderDetail(po) {
     };
     document.getElementById("regenerate-btn").onclick = submitRegenerate;
   }
+  document.getElementById("delete-po-btn").onclick = submitDeleteFromSheet;
 
   document.getElementById("detail-sheet").classList.remove("hidden");
+}
+
+async function submitDeleteFromSheet() {
+  if (!currentPo) {
+    toast(t("no_order_loaded"));
+    return;
+  }
+  haptic("medium");
+  const ok = await confirmAction(t("delete_confirm_title"), t("delete_confirm_body", currentPo.po_id));
+  if (!ok) return;
+
+  const btn = document.getElementById("delete-po-btn");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = t("deleting");
+  }
+
+  try {
+    await api(`/api/webapp/po/${currentPoId}`, { method: "DELETE" });
+    haptic("medium");
+    toast(t("delete_success"));
+    closeSheet();
+    loadDashboard();
+    if (document.getElementById("tab-history").classList.contains("active")) loadHistory();
+  } catch (e) {
+    haptic("heavy");
+    toast(e.message || t("delete_failed"));
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = `🗑️ ${t("delete")}`;
+    }
+  }
 }
 
 async function submitRegenerate() {
