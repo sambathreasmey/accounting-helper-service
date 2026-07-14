@@ -68,8 +68,6 @@ body {
   position: relative;
 }
 
-/* Soft ambient glows sitting behind the glass surfaces so blur has
-   something colorful to pick up, instead of just fogging flat gray. */
 body::before {
   content: "";
   position: fixed;
@@ -80,9 +78,6 @@ body::before {
     radial-gradient(420px 340px at 100% 18%, var(--bg-glow-2), transparent 55%);
   pointer-events: none;
 }
-
-/* ---------- Floating language/theme controls ---------- */
-/* Fixed, independent of header/tabbar so it's always visible and never overlaps anything */
 
 #app-controls {
   position: fixed;
@@ -114,8 +109,6 @@ body::before {
 
 .icon-btn:active { transform: scale(0.92); }
 
-/* ---------- Top progress bar ---------- */
-
 #progress-bar {
   position: fixed;
   top: 0;
@@ -143,13 +136,11 @@ body::before {
   100% { transform: translateX(350%); }
 }
 
-/* ---------- User header ---------- */
-
 .user-header {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 60px 6px 16px; /* right padding clears the fixed controls */
+  padding: 14px 60px 6px 16px;
   max-width: 640px;
   margin: 0 auto;
 }
@@ -170,8 +161,6 @@ body::before {
 
 .user-greeting { font-size: 16px; font-weight: 700; }
 .user-sub { font-size: 12px; color: var(--hint); margin-top: 1px; }
-
-/* ---------- Tabs ---------- */
 
 .tabbar {
   display: flex;
@@ -228,8 +217,6 @@ main { padding: 16px; max-width: 640px; margin: 0 auto; }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ---------- Stats ---------- */
-
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -263,7 +250,6 @@ main { padding: 16px; max-width: 640px; margin: 0 auto; }
 }
 
 .stat-card::after {
-  /* thin diagonal sheen for that "glass pane" catch-light look */
   content: "";
   position: absolute;
   inset: 0;
@@ -288,8 +274,6 @@ main { padding: 16px; max-width: 640px; margin: 0 auto; }
   margin-top: 3px;
   font-weight: 500;
 }
-
-/* ---------- Filters ---------- */
 
 .filters {
   display: flex;
@@ -323,14 +307,7 @@ main { padding: 16px; max-width: 640px; margin: 0 auto; }
   border-color: var(--button);
 }
 
-/* ---------- PO list / cards ---------- */
-
 .po-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; min-height: 40px; }
-
-/* ---------- Swipe-to-delete wrapper ---------- */
-/* .po-card-wrapper clips the reveal area; the delete action sits fixed
-   underneath while .po-card is dragged left on top of it, mirroring the
-   native iOS/Android list swipe-to-delete gesture. */
 
 .po-card-wrapper {
   position: relative;
@@ -383,6 +360,41 @@ main { padding: 16px; max-width: 640px; margin: 0 auto; }
 .po-card.dragging { transition: none; }
 .po-card.swiped { box-shadow: -6px 0 18px rgba(0,0,0,0.18), inset 0 1px 0 var(--glass-highlight); }
 
+/* Cards must always read as neutral glass, never tinted by status.
+   Status is communicated only through the small .badge color — the
+   card surface itself stays consistent. This also neutralizes any
+   inline/status-driven background app.js may be setting on the card. */
+.po-card,
+.po-card.pending,
+.po-card.dispatched,
+.po-card.completed,
+.po-card.failed,
+.po-card[data-status] {
+  background: var(--card-bg) !important;
+  border-color: var(--glass-border) !important;
+}
+
+.po-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--card-accent, transparent);
+  opacity: 0.85;
+}
+
+.po-card.pending,
+.po-card[data-status="pending"] { --card-accent: var(--warn); }
+.po-card.dispatched,
+.po-card[data-status="dispatched"] { --card-accent: var(--link); }
+.po-card.completed,
+.po-card[data-status="completed"] { --card-accent: var(--success); }
+.po-card.failed,
+.po-card[data-status="failed"] { --card-accent: var(--danger); }
+
 @keyframes card-in {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
@@ -419,8 +431,6 @@ main { padding: 16px; max-width: 640px; margin: 0 auto; }
 
 .empty-state .empty-icon { font-size: 34px; display: block; margin-bottom: 10px; opacity: 0.8; }
 
-/* ---------- Skeletons ---------- */
-
 .skeleton {
   background: linear-gradient(100deg, var(--shimmer-base) 30%, var(--shimmer-shine) 50%, var(--shimmer-base) 70%);
   background-size: 200% 100%;
@@ -445,8 +455,6 @@ main { padding: 16px; max-width: 640px; margin: 0 auto; }
   border: 1px solid var(--border);
 }
 
-/* ---------- Pager ---------- */
-
 .pager {
   display: flex;
   justify-content: center;
@@ -470,8 +478,6 @@ main { padding: 16px; max-width: 640px; margin: 0 auto; }
 
 .pager button:active:not(:disabled) { transform: scale(0.96); }
 .pager button:disabled { opacity: 0.35; }
-
-/* ---------- Detail sheet ---------- */
 
 .sheet {
   position: fixed;
