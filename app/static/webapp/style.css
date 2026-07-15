@@ -1,17 +1,17 @@
 :root,
 :root[data-theme="dark"] {
-  --bg: var(--tg-theme-bg-color, #0f1115);
-  --secondary-bg: var(--tg-theme-secondary-bg-color, #171a21);
+  --bg: #0f1115;
+  --secondary-bg: #171a21;
   --card-bg: rgba(35, 39, 50, 0.55);
   --card-bg-solid: #1b1f28;
   --glass-highlight: rgba(255, 255, 255, 0.06);
   --glass-border: rgba(255, 255, 255, 0.09);
   --glass-blur: 20px;
-  --text: var(--tg-theme-text-color, #f2f2f2);
-  --hint: var(--tg-theme-hint-color, #8b8f9a);
-  --link: var(--tg-theme-link-color, #6ab7ff);
-  --button: var(--tg-theme-button-color, #4f8ef7);
-  --button-text: var(--tg-theme-button-text-color, #ffffff);
+  --text: #f2f2f2;
+  --hint: #8b8f9a;
+  --link: #6ab7ff;
+  --button: #4f8ef7;
+  --button-text: #ffffff;
   --border: #262a34;
   --success: #3ecf8e;
   --warn: #f6b93b;
