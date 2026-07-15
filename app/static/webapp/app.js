@@ -47,6 +47,9 @@ const STRINGS = {
     deleting: "Deleting…",
     delete_success: "Order deleted",
     delete_failed: "Couldn't delete order",
+    add_to_home: "Add to Home Screen",
+    add_to_home_success: "Added to Home Screen ✅",
+    add_to_home_failed: "Couldn't add to Home Screen",
   },
   km: {
     subtitle: "ផ្ទាំងគ្រប់គ្រងបញ្ជាទិញ",
@@ -85,6 +88,9 @@ const STRINGS = {
     deleting: "កំពុងលុប…",
     delete_success: "បានលុបបញ្ជាទិញ",
     delete_failed: "មិនអាចលុបបញ្ជាទិញបានទេ",
+    add_to_home: "បន្ថែមទៅអេក្រង់ដើម",
+    add_to_home_success: "បានបន្ថែមទៅអេក្រង់ដើម ✅",
+    add_to_home_failed: "មិនអាចបន្ថែមទៅអេក្រង់ដើមបានទេ",
   },
 };
 
@@ -107,6 +113,7 @@ function applyStaticTranslations() {
   document.getElementById("user-sub").textContent = t("subtitle");
   document.documentElement.lang = i18nState.lang === "km" ? "km" : "en";
   document.getElementById("lang-toggle").textContent = i18nState.lang === "km" ? "KH" : "EN";
+  document.getElementById("home-toggle").title = t("add_to_home");
 }
 
 function setLanguage(lang) {
@@ -141,6 +148,56 @@ document.getElementById("theme-toggle").addEventListener("click", () => {
   haptic("light");
   applyTheme(themeState.mode === "light" ? "dark" : "light");
 });
+
+// ---------- Add to Home Screen ----------
+// Bot API 8.0+. Lets users pin the Mini App without going through Telegram's
+// own "⋮" menu. We feature-detect since older clients won't have the method,
+// and hide the button once we know it's already been added.
+
+const homeBtn = document.getElementById("home-toggle");
+
+function initHomeScreenButton() {
+  if (!tg || typeof tg.addToHomeScreen !== "function") return; // unsupported client
+
+  const showButton = () => homeBtn.classList.remove("hidden");
+  const hideButton = () => homeBtn.classList.add("hidden");
+
+  if (typeof tg.checkHomeScreenStatus === "function") {
+    try {
+      tg.checkHomeScreenStatus((status) => {
+        // status: 'unsupported' | 'unknown' | 'added' | 'missed'
+        if (status === "added") hideButton();
+        else if (status === "unsupported") hideButton();
+        else showButton();
+      });
+    } catch {
+      // Some clients (notably iOS) can't determine status reliably — show
+      // the button anyway and let addToHomeScreen itself handle it.
+      showButton();
+    }
+  } else {
+    showButton();
+  }
+
+  tg.onEvent?.("homeScreenAdded", () => {
+    haptic("medium");
+    toast(t("add_to_home_success"));
+    hideButton();
+  });
+
+  tg.onEvent?.("homeScreenChecked", (status) => {
+    if (status === "added" || status === "unsupported") hideButton();
+  });
+
+  homeBtn.addEventListener("click", () => {
+    haptic("light");
+    try {
+      tg.addToHomeScreen();
+    } catch (e) {
+      toast(t("add_to_home_failed"));
+    }
+  });
+}
 
 // ---------- App state ----------
 
@@ -660,5 +717,6 @@ document.querySelector("#detail-sheet .sheet-backdrop").addEventListener("click"
 
 applyTheme(themeState.mode);
 applyStaticTranslations();
+initHomeScreenButton();
 loadMe();
 loadDashboard();
