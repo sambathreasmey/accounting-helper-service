@@ -62,7 +62,7 @@ class InvalidToken(Exception):
 
 
 def create_access_token(chat_id: int) -> str:
-    now = datetime.now(time.timezone.utc)
+    now = datetime.now(timezone.utc)
     payload = {
         "sub": str(chat_id),
         "iat": now,
