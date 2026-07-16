@@ -38,5 +38,9 @@ class AppSettings(BaseSettings):
             url = url.split("?", 1)[0]
         return url
 
+    JWT_SECRET: str
+    JWT_ALGORITHM: str = "HS256"
+    JWT_ACCESS_EXPIRE_MINUTES: int = 30
+    JWT_REFRESH_EXPIRE_DAYS: int = 14
 
 settings = AppSettings()

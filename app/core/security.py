@@ -5,6 +5,10 @@ import time
 from urllib.parse import parse_qsl
 
 from app.core.config import settings
+from datetime import datetime, timedelta, timezone
+import uuid
+import jwt
+from jwt import PyJWTError
 
 INIT_DATA_MAX_AGE_SECONDS = 24 * 60 * 60  # Telegram WebApp sessions are short-lived
 
@@ -51,3 +55,44 @@ def validate_init_data(init_data: str) -> dict:
         raise InvalidInitData("initData missing user")
 
     return json.loads(user_raw)
+
+
+class InvalidToken(Exception):
+    pass
+
+
+def create_access_token(chat_id: int) -> str:
+    now = datetime.now(time.timezone.utc)
+    payload = {
+        "sub": str(chat_id),
+        "iat": now,
+        "exp": now + timedelta(minutes=settings.JWT_ACCESS_EXPIRE_MINUTES),
+        "type": "access",
+        "jti": str(uuid.uuid4()),
+    }
+    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+
+
+def create_refresh_token(chat_id: int) -> str:
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": str(chat_id),
+        "iat": now,
+        "exp": now + timedelta(days=settings.JWT_REFRESH_EXPIRE_DAYS),
+        "type": "refresh",
+        "jti": str(uuid.uuid4()),
+    }
+    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+
+
+def decode_token(token: str, expected_type: str = "access") -> int:
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+    except PyJWTError as exc:
+        raise InvalidToken(str(exc)) from exc
+    if payload.get("type") != expected_type:
+        raise InvalidToken("Wrong token type")
+    try:
+        return int(payload["sub"])
+    except (KeyError, ValueError) as exc:
+        raise InvalidToken("Malformed subject") from exc
