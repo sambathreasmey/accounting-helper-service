@@ -6,7 +6,6 @@ from app.core.security import InvalidToken, decode_token
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
-
 async def get_chat_id(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> int:
