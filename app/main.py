@@ -36,11 +36,11 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[
-            "https://accounting-helper-frontend.pages.dev",  # your Pages default domain
-            "https://myapp.sambathreasmey.site",  # if this is actually the frontend's custom domain — see note below
+            "https://accounting-helper-frontend.pages.dev",
+            "https://myapp.sambathreasmey.site",
         ],
         allow_methods=["GET", "POST", "DELETE"],
-        allow_headers=["Content-Type", "X-Telegram-Init-Data"],
+        allow_headers=["Content-Type", "X-Telegram-Init-Data", "Authorization"],
     )
 
     app.include_router(auth_router)
