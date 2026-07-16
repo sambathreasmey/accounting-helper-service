@@ -12,6 +12,7 @@ dependencies = [
     "redis>=5.0.0",
     "sqlalchemy>=2.0.30",
     "asyncpg>=0.29.0",
+    "pyjwt>=2.13.0",
 ]
 
 [tool.uv]
