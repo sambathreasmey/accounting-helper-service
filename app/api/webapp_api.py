@@ -1,9 +1,10 @@
 import uuid
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import InvalidInitData, validate_init_data
+from app.core.security import InvalidToken, decode_token
 from app.db.crud import (
     create_po,
     dashboard_stats,
@@ -20,59 +21,32 @@ from app.services.redis_client import cache_get, cache_invalidate_chat, cache_se
 
 router = APIRouter(prefix="/api/webapp", tags=["Mini App"])
 
-# Short TTL — long enough to absorb the burst of requests a tab switch
-# triggers, short enough that a stale read is never noticeable. Every
-# write path calls cache_invalidate_chat() so this is a pure perf win,
-# not a staleness trade-off in the common case.
 DASHBOARD_CACHE_TTL = 40
 HISTORY_CACHE_TTL = 40
 
+bearer_scheme = HTTPBearer(auto_error=False)
 
-async def get_chat_id(x_telegram_init_data: str | None = Header(default=None)) -> int:
-    """
-    Validates the Telegram WebApp `initData` sent by the Mini App on every
-    request and returns the user's id, which doubles as the chat_id for
-    the private chat between the user and the bot.
-    """
-    if not x_telegram_init_data:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing X-Telegram-Init-Data",
-        )
+
+async def get_chat_id(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> int:
+    """Resolves chat_id from a JWT access token (Authorization: Bearer ...)."""
+    if credentials is None:
+        raise HTTPException(status_code=401, detail="Missing bearer token")
     try:
-        user = validate_init_data(x_telegram_init_data)
-    except InvalidInitData as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)
-        ) from exc
-    return int(user["id"])
+        return decode_token(credentials.credentials, expected_type="access")
+    except InvalidToken as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
 
 
 @router.get("/me")
-async def get_me(x_telegram_init_data: str | None = Header(default=None)):
+async def get_me(chat_id: int = Depends(get_chat_id)):
     """
-    Returns the validated Telegram user for this session. The Mini App
-    calls this once on load to show a trustworthy "Hi, {name}" instead of
-    relying on the client-side (unverified) initDataUnsafe.
+    Returns the chat_id for the current JWT session. If you need first_name /
+    username / photo_url here too, store them in the JWT payload at issuance
+    (in create_access_token) or look them up from your DB by chat_id.
     """
-    if not x_telegram_init_data:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing X-Telegram-Init-Data",
-        )
-    try:
-        user = validate_init_data(x_telegram_init_data)
-    except InvalidInitData as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)
-        ) from exc
-    return {
-        "id": user.get("id"),
-        "first_name": user.get("first_name"),
-        "last_name": user.get("last_name"),
-        "username": user.get("username"),
-        "photo_url": user.get("photo_url"),
-    }
+    return {"id": chat_id}
 
 
 @router.get("/dashboard")
@@ -160,11 +134,6 @@ async def regenerate_po(
     chat_id: int = Depends(get_chat_id),
     session: AsyncSession = Depends(get_session),
 ):
-    """
-    Creates a fresh history record from edited items and re-dispatches the
-    generation workflow. The original record is left untouched for audit
-    history; the new one links back via `regenerated_from_id`.
-    """
     original = await get_po(session, po_id)
     if original is None or original.chat_id != chat_id:
         raise HTTPException(status_code=404, detail="Not found")
