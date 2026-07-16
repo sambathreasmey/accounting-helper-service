@@ -87,7 +87,9 @@ def create_refresh_token(chat_id: int) -> str:
 
 def decode_token(token: str, expected_type: str = "access") -> int:
     try:
-        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+        payload = jwt.decode(
+            token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM]
+        )
     except PyJWTError as exc:
         raise InvalidToken(str(exc)) from exc
     if payload.get("type") != expected_type:

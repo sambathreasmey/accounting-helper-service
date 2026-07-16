@@ -43,4 +43,5 @@ class AppSettings(BaseSettings):
     JWT_ACCESS_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_EXPIRE_DAYS: int = 14
 
+
 settings = AppSettings()
