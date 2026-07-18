@@ -11,10 +11,10 @@ def forward_message(po_id: str, po_data: str) -> dict:
         "inline_keyboard": [
             [
                 {"text": "✅ Confirm", "callback_data": f"po_confirm:{po_id}"},
-                {"text": "✏️ Edit", "callback_data": f"po_edit:{po_id}"},
+                # {"text": "✏️ Edit", "callback_data": f"po_edit:{po_id}"},
             ],
-            [
-                {"text": "📤 Forward", "callback_data": f"po_forward:{po_id}"},
-            ],
+            # [
+            #     {"text": "📤 Forward", "callback_data": f"po_forward:{po_id}"},
+            # ],
         ]
     }
