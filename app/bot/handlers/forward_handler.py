@@ -43,9 +43,18 @@ def generate_clean_po(supplier_name: str, invoice_id: str, raw_items: str) -> st
         "3. ORDERING RULE: The Price MUST ALWAYS be at the very end of the line. If the raw text has the price "
         "before the quantity, you MUST rearrange the words.\n"
         "4. CURRENCY RULE: The price must ALWAYS be formatted as the number followed by the '$' symbol "
-        "(e.g., '3.5$'). If the raw text says '$3.5', you MUST rewrite it as '3.5$'.\n"
-        "5. PRESERVATION: Keep original spelling and units for everything else, just fix the order and "
-        "currency format."
+        "(e.g., '3.5$'). If the raw text says '$3.5', you MUST rewrite it as '3.5$'. If a price uses a comma "
+        "as the decimal separator (e.g. '3,5'), convert it to a period ('3.5').\n"
+        "5. ONE ITEM PER LINE: If the raw text has more than one item crammed onto a single line (items are "
+        "usually separated by extra spaces or a second product name/quantity/price appearing after the first), "
+        "you MUST split them into separate lines, one item each. Never merge two items onto one output line.\n"
+        "6. SEPARATOR CLEANUP: Raw lines may use '=' or other punctuation between quantity/pack info and price "
+        "(e.g. '500G =1p 12$'). Strip these separators and keep only the item name, quantity, and price, in "
+        "that order.\n"
+        "7. PRESERVATION: Keep original spelling and units for everything else, just fix the order, currency "
+        "format, and line separation.\n"
+        "8. OUTPUT ONLY: Output the header line followed by the item lines and nothing else -- no preamble, "
+        "no explanation, no closing remarks, no markdown code fences."
     )
     return call_llama(
         user_prompt=raw_items, system_prompt=system_message, temperature=0.1
@@ -76,10 +85,12 @@ async def handle_forward_message(chat_id: int, message: dict) -> None:
     try:
         orders = parse_po_message(po_data)
     except POParseError:
-        logger.exception(
-            "LLM-generated PO text failed to parse for chat_id=%s invoice_id=%s",
+        logger.error(
+            "LLM-generated PO text failed to parse for chat_id=%s invoice_id=%s.\n"
+            "--- LLM output start ---\n%s\n--- LLM output end ---",
             chat_id,
             invoice_id,
+            po_data,
         )
         await telegram_client.send_message(
             chat_id,

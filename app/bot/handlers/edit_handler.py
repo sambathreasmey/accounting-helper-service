@@ -43,10 +43,12 @@ async def handle_po_edit_reply(chat_id: int, po_id: str, raw_text: str) -> None:
         try:
             orders = parse_po_message(po_data)
         except POParseError:
-            logger.exception(
-                "Edited PO text failed to parse for chat_id=%s po_id=%s",
+            logger.error(
+                "Edited PO text failed to parse for chat_id=%s po_id=%s.\n"
+                "--- LLM output start ---\n%s\n--- LLM output end ---",
                 chat_id,
                 po.po_id,
+                po_data,
             )
             await telegram_client.send_message(
                 chat_id,
