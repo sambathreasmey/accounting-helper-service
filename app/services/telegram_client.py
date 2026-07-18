@@ -72,6 +72,23 @@ class TelegramClient:
         response.raise_for_status()
         return response.json()
 
+    async def forward_message(
+        self, chat_id: int, from_chat_id: int, message_id: int, **kwargs: Any
+    ) -> dict:
+        """
+        Native Telegram forward -- copies the message (with its original
+        'Forwarded from' attribution) into `chat_id`, no re-typing needed.
+        """
+        payload: dict = {
+            "chat_id": chat_id,
+            "from_chat_id": from_chat_id,
+            "message_id": message_id,
+            **kwargs,
+        }
+        response = await self._client.post("/forwardMessage", json=payload)
+        response.raise_for_status()
+        return response.json()
+
     async def send_photo(
         self,
         chat_id: int,

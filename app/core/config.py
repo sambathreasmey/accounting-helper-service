@@ -25,6 +25,8 @@ class AppSettings(BaseSettings):
     GROQ_API_KEY: str = ""
     MODEL_NAME: str = Field(default="llama-3.3-70b-versatile")
 
+    FORWARD_CHAT_ID: int | None = None
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     @property

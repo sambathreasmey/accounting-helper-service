@@ -1,6 +1,7 @@
 import logging
 import uuid
 
+from app.core.config import settings
 from app.db.crud import get_po
 from app.db.database import async_session_maker
 from app.db.models import POStatus
@@ -19,7 +20,8 @@ async def handle_callback_query(callback_query: dict) -> None:
     """
     callback_id = callback_query["id"]
     data = callback_query.get("data", "")
-    chat_id = callback_query["message"]["chat"]["id"]
+    message = callback_query["message"]
+    chat_id = message["chat"]["id"]
 
     try:
         action, po_id_str = data.split(":", 1)
@@ -44,7 +46,7 @@ async def handle_callback_query(callback_query: dict) -> None:
         elif action == "po_edit":
             await _handle_edit(callback_id, po, chat_id)
         elif action == "po_forward":
-            await _handle_forward(callback_id, po)
+            await _handle_forward(callback_id, po, message)
         else:
             logger.warning("Unknown callback action: %r", action)
             await telegram_client.answer_callback_query(
@@ -81,15 +83,36 @@ async def _handle_edit(callback_id: str, po, chat_id: int) -> None:
     )
 
 
-async def _handle_forward(callback_id: str, po) -> None:
+async def _handle_forward(callback_id: str, po, message: dict) -> None:
     """
-    Fastest path for the user: Telegram's own native forward action
-    (long-press the message, or tap the ⋮ menu, then choose "Forward")
-    already lets them send this PO to any chat or group -- no extra
-    typing, no custom chat picker needed.
+    One-tap forward: sends this PO message straight to a fixed configured
+    chat (settings.FORWARD_CHAT_ID), e.g. a warehouse/supplier group --
+    no manual long-press or chat picker needed from the user.
     """
-    await telegram_client.answer_callback_query(
-        callback_id,
-        text="Long-press the message above (or tap ⋮) and choose 'Forward' to send it anywhere.",
-        show_alert=True,
-    )
+    if not settings.FORWARD_CHAT_ID:
+        await telegram_client.answer_callback_query(
+            callback_id,
+            text="No forward destination is configured yet (settings.FORWARD_CHAT_ID).",
+            show_alert=True,
+        )
+        return
+
+    from_chat_id = message["chat"]["id"]
+    message_id = message["message_id"]
+
+    try:
+        await telegram_client.forward_message(
+            chat_id=settings.FORWARD_CHAT_ID,
+            from_chat_id=from_chat_id,
+            message_id=message_id,
+        )
+    except Exception:
+        logger.exception("Failed to forward PO %s to FORWARD_CHAT_ID", po.po_id)
+        await telegram_client.answer_callback_query(
+            callback_id,
+            text="Couldn't forward this PO. Please try again.",
+            show_alert=True,
+        )
+        return
+
+    await telegram_client.answer_callback_query(callback_id, text="Forwarded ✅")
