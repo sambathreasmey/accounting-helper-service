@@ -22,6 +22,9 @@ class AppSettings(BaseSettings):
     # Telegram Mini App (dashboard / history / regenerate UI)
     MINI_APP_URL: str = ""  # e.g. https://your-app.fastapicloud.dev/app
 
+    GROQ_API_KEY: str = ""
+    MODEL_NAME: str = Field(default="llama-3.3-70b-versatile")
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     @property
