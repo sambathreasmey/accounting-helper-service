@@ -116,7 +116,7 @@ async def handle_forward_message(chat_id: int, message: dict) -> None:
 
     res_msg = await telegram_client.send_message(
         chat_id,
-        f"<pre>{po_data}<pre>",
+        f"<pre>{po_data}</pre>",
         reply_markup=forward_message(str(po_record.id), po_data),
         parse_mode="HTML",
     )
