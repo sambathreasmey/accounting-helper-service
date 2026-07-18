@@ -106,3 +106,20 @@ async def dashboard_stats(session: AsyncSession, *, chat_id: int) -> dict:
         "total": sum(counts.values()),
         "recent": [po.to_dict() for po in recent],
     }
+
+
+async def update_po_content(
+    session: AsyncSession,
+    po: PurchaseOrder,
+    *,
+    items: list[dict],
+    raw_text: str | None = None,
+) -> PurchaseOrder:
+    po.items = items
+    if raw_text is not None:
+        po.raw_text = raw_text
+    po.status = POStatus.PENDING
+    po.error_message = None
+    await session.commit()
+    await session.refresh(po)
+    return po

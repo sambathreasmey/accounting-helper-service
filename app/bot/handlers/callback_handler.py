@@ -4,6 +4,7 @@ import uuid
 from app.db.crud import get_po
 from app.db.database import async_session_maker
 from app.db.models import POStatus
+from app.services.edit_state import set_pending_edit
 from app.services.po_dispatch import dispatch_po_generation
 from app.services.telegram_client import telegram_client
 
@@ -41,7 +42,7 @@ async def handle_callback_query(callback_query: dict) -> None:
         if action == "po_confirm":
             await _handle_confirm(callback_id, session, po, chat_id)
         elif action == "po_edit":
-            await _handle_edit(callback_id, po)
+            await _handle_edit(callback_id, po, chat_id)
         elif action == "po_forward":
             await _handle_forward(callback_id, po)
         else:
@@ -68,16 +69,27 @@ async def _handle_confirm(callback_id: str, session, po, chat_id: int) -> None:
     await dispatch_po_generation(session, po.id, chat_id, po.po_id, data_payload)
 
 
-async def _handle_edit(callback_id: str, po) -> None:
-    # TODO: implement edit flow -- e.g. prompt the user for corrected text
-    # and track a "pending edit for this po_id" state per chat.
+async def _handle_edit(callback_id: str, po, chat_id: int) -> None:
+    """
+    Marks this chat as "mid-edit" for this PO. The next plain-text message
+    the user sends in this chat is picked up by the router (before normal
+    routing) and passed to app/bot/handlers/edit_handler.py.
+    """
+    set_pending_edit(chat_id, str(po.id))
     await telegram_client.answer_callback_query(
         callback_id, text="Reply with the corrected PO text to edit it."
     )
 
 
 async def _handle_forward(callback_id: str, po) -> None:
-    # TODO: implement forward-to-another-chat flow.
+    """
+    Fastest path for the user: Telegram's own native forward action
+    (long-press the message, or tap the ⋮ menu, then choose "Forward")
+    already lets them send this PO to any chat or group -- no extra
+    typing, no custom chat picker needed.
+    """
     await telegram_client.answer_callback_query(
-        callback_id, text="Forwarding this PO isn't wired up yet."
+        callback_id,
+        text="Long-press the message above (or tap ⋮) and choose 'Forward' to send it anywhere.",
+        show_alert=True,
     )
