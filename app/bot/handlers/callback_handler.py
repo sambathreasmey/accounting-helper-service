@@ -63,7 +63,7 @@ async def _handle_confirm(callback_id: str, session, po, chat_id: int) -> None:
     )
 
     data_payload = [
-        {"supplier_name": po.supplier_name, "po_id": po.po_id, "raw_text": po.raw_text}
+        {"supplier_name": po.supplier_name, "po_id": po.po_id, "items": po.items}
     ]
     await dispatch_po_generation(session, po.id, chat_id, po.po_id, data_payload)
 

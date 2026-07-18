@@ -1,6 +1,7 @@
 import logging
 
 from app.bot.keyboards.po_keyboard import forward_message
+from app.bot.parsers.po_parser import POParseError, parse_po_message
 from app.db.crud import create_po
 from app.db.database import async_session_maker
 from app.services.llm_client import call_llama
@@ -54,6 +55,7 @@ def generate_clean_po(supplier_name: str, invoice_id: str, raw_items: str) -> st
 async def handle_forward_message(chat_id: int, message: dict) -> None:
     """
     Handles a forwarded message: builds a clean PO from the raw text via LLM,
+    parses it into structured items (same parser the typed-PO flow uses),
     saves it to the DB as PENDING, and sends it back with a confirm/edit/forward
     keyboard. PO generation is NOT dispatched here -- that only happens once the
     user taps "Confirm" (see app/bot/handlers/callback_handler.py).
@@ -71,13 +73,33 @@ async def handle_forward_message(chat_id: int, message: dict) -> None:
 
     po_data = generate_clean_po(supplier_name, invoice_id, text)
 
+    try:
+        orders = parse_po_message(po_data)
+    except POParseError:
+        logger.exception(
+            "LLM-generated PO text failed to parse for chat_id=%s invoice_id=%s",
+            chat_id,
+            invoice_id,
+        )
+        await telegram_client.send_message(
+            chat_id,
+            "⚠️ I cleaned up the forwarded message but couldn't parse it into items. "
+            "Please check the formatting and try forwarding it again, or type the PO manually.",
+        )
+        return
+
+    # generate_clean_po is prompted to produce exactly one supplier/PO block,
+    # so this should always be a single order.
+    order = orders[0]
+    items = [item.to_dict() for item in order.items]
+
     async with async_session_maker() as session:
         po_record = await create_po(
             session,
             chat_id=chat_id,
             po_id=invoice_id,
             supplier_name=supplier_name,
-            items=[],
+            items=items,
             raw_text=text,
         )
 
