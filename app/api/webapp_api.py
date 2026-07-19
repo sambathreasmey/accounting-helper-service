@@ -10,6 +10,7 @@ from app.db.crud import (
     dashboard_stats,
     delete_po,
     get_po,
+    get_user_profile,
     list_pos,
     set_status,
 )
@@ -40,13 +41,24 @@ async def get_chat_id(
 
 
 @router.get("/me")
-async def get_me(chat_id: int = Depends(get_chat_id)):
-    """
-    Returns the chat_id for the current JWT session. If you need first_name /
-    username / photo_url here too, store them in the JWT payload at issuance
-    (in create_access_token) or look them up from your DB by chat_id.
-    """
-    return {"id": chat_id}
+async def get_me(
+    chat_id: int = Depends(get_chat_id),
+    session: AsyncSession = Depends(get_session),
+):
+    """Fetches full authenticated Telegram profile information for the UI header."""
+    user = await get_user_profile(session, chat_id=chat_id)
+
+    if not user:
+        # Fallback dictionary matching frontend structure if DB table row doesn't exist yet
+        return {
+            "id": chat_id,
+            "first_name": "",
+            "last_name": None,
+            "username": None,
+            "photo_url": None,
+        }
+
+    return user.to_dict() @ router.get("/me")
 
 
 @router.get("/dashboard")

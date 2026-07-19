@@ -3,7 +3,50 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import POSource, POStatus, PurchaseOrder
+from app.db.models import POSource, POStatus, PurchaseOrder, User
+
+
+async def upsert_user_profile(
+    session: AsyncSession,
+    *,
+    chat_id: int,
+    first_name: str,
+    last_name: str | None = None,
+    username: str | None = None,
+    photo_url: str | None = None,
+) -> User:
+    """Saves or updates profile details received from Telegram Mini App auth."""
+    query = select(User).where(User.chat_id == chat_id)
+    result = await session.execute(query)
+    user = result.scalars().first()
+
+    if user:
+        # Update existing records to capture profile updates or changed photo URLs
+        user.first_name = first_name
+        user.last_name = last_name
+        user.username = username
+        user.photo_url = photo_url
+    else:
+        # Create user record if accessing for the first time
+        user = User(
+            chat_id=chat_id,
+            first_name=first_name,
+            last_name=last_name,
+            username=username,
+            photo_url=photo_url,
+        )
+        session.add(user)
+
+    await session.commit()
+    await session.refresh(user)
+    return user
+
+
+async def get_user_profile(session: AsyncSession, chat_id: int) -> User | None:
+    """Fetches a user profile by their Telegram chat id."""
+    query = select(User).where(User.chat_id == chat_id)
+    result = await session.execute(query)
+    return result.scalars().first()
 
 
 async def create_po(

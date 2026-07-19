@@ -21,6 +21,37 @@ class POSource(str, enum.Enum):
     WEBAPP_REGENERATE = "webapp_regenerate"  # re-triggered from the Mini App
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    # Telegram user ID / chat ID is used as the primary identifier
+    chat_id: Mapped[int] = mapped_column(
+        BigInteger, primary_key=True, index=True, autoincrement=False
+    )
+
+    first_name: Mapped[str] = mapped_column(Text, nullable=False)
+    last_name: Mapped[str | None] = mapped_column(Text, nullable=True)
+    username: Mapped[str | None] = mapped_column(Text, nullable=True)
+    photo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.chat_id,  # Scopes directly to frontend's expected me.id field
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "username": self.username,
+            "photo_url": self.photo_url,
+            "created_at": self.created_at.isoformat(),
+        }
+
+
 class PurchaseOrder(Base):
     __tablename__ = "purchase_orders"
 
