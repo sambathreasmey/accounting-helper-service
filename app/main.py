@@ -38,6 +38,7 @@ def create_app() -> FastAPI:
         allow_origins=[
             "https://accounting-helper-frontend.pages.dev",
             "https://myapp.sambathreasmey.site",
+            "https://crushable-ambiance-foothold.ngrok-free.dev",
         ],
         allow_methods=["GET", "POST", "DELETE"],
         allow_headers=["Content-Type", "X-Telegram-Init-Data", "Authorization"],
