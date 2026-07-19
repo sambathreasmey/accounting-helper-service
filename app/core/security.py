@@ -18,16 +18,19 @@ class InvalidInitData(Exception):
 
 
 def validate_init_data(init_data: str) -> dict:
-    """
-    Validates the `initData` string a Telegram Mini App sends on every
-    request, per https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
-
-    Returns the parsed Telegram user dict on success.
-    """
     if not init_data:
         raise InvalidInitData("Missing initData")
 
     parsed = dict(parse_qsl(init_data, strict_parsing=True))
+
+    # ─── ADD THIS DEVELOPMENT BYPASS BLOCK ──────────────────────────────────
+    if getattr(settings, "ENVIRONMENT", "").lower() == "development":
+        user_raw = parsed.get("user")
+        if not user_raw:
+            return {"id": 12345678, "first_name": "Dev", "username": "dev_user"}
+        return json.loads(user_raw)
+    # ────────────────────────────────────────────────────────────────────────
+
     received_hash = parsed.pop("hash", None)
     if not received_hash:
         raise InvalidInitData("initData missing hash")
