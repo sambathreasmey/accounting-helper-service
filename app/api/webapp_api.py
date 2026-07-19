@@ -49,7 +49,6 @@ async def get_me(
     user = await get_user_profile(session, chat_id=chat_id)
 
     if not user:
-        # Fallback dictionary matching frontend structure if DB table row doesn't exist yet
         return {
             "id": chat_id,
             "first_name": "",
@@ -58,7 +57,7 @@ async def get_me(
             "photo_url": None,
         }
 
-    return user.to_dict() @ router.get("/me")
+    return user.to_dict()
 
 
 @router.get("/dashboard")
