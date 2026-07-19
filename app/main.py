@@ -41,7 +41,7 @@ def create_app() -> FastAPI:
             "http://localhost:3000",
             "https://crushable-ambiance-foothold.ngrok-free.dev",
         ],
-        allow_methods=["GET", "POST", "DELETE"],
+        allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type", "X-Telegram-Init-Data", "Authorization"],
     )
 
