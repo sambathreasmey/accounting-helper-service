@@ -1,6 +1,5 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
-import logfire
 from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -13,13 +12,6 @@ from app.db.database import dispose_engine, init_models
 from app.services.telegram_client import telegram_client
 
 STATIC_DIR = Path(__file__).parent / "static"
-
-# Configure once, at import time, before the app is created.
-logfire.configure(
-    service_name="accounting-helper-service",
-    environment=settings.ENVIRONMENT,
-    # token picked up from LOGFIRE_TOKEN env var if not passed explicitly
-)
 
 
 @asynccontextmanager
@@ -41,14 +33,6 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Instrument FastAPI itself: request/response spans, route params, status codes.
-    logfire.instrument_fastapi(app, capture_headers=True)
-
-    # Optional but usually worth it — instrument the libraries you're actually using:
-    logfire.instrument_httpx()  # outgoing calls to Telegram API via telegram_client
-    logfire.instrument_sqlalchemy()  # if app/db/database.py uses SQLAlchemy engine
-    # logfire.instrument_pydantic()     # validation spans, if you want that level of detail
-
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[
@@ -65,6 +49,8 @@ def create_app() -> FastAPI:
     app.include_router(telegram_router)
     app.include_router(po_callback_router)
     app.include_router(webapp_api_router)
+    # Old static Mini App — safe to remove once Cloudflare Pages is live,
+    # or keep as a fallback at /app.
     app.mount(
         "/app", StaticFiles(directory=STATIC_DIR / "webapp", html=True), name="webapp"
     )
