@@ -82,24 +82,33 @@ jobs:
           echo "project_name=$PROJECT_NAME" >> "$GITHUB_OUTPUT"
           echo "environment=$ENVIRONMENT" >> "$GITHUB_OUTPUT"
 
-      - name: Set status emojis
+      - name: Set overall status
         id: status
         run: |
           lint_result="${{ needs.quality-gate.result }}"
           deploy_result="${{ needs.deploy.result }}"
 
-          set_emoji() {
+          # per-job cute label
+          label() {
             case "$1" in
-              success) echo "Success ✅" ;;
-              failure) echo "Failed ❌" ;;
-              skipped) echo "Skipped ⏭️" ;;
-              cancelled) echo "Cancelled 🚫" ;;
-              *) echo "Unknown ❓" ;;
+              success) echo "$2  ${3}s  ✨" ;;
+              failure) echo "$2  💥 failed" ;;
+              skipped) echo "$2  😴 skipped" ;;
+              cancelled) echo "$2  🚫 cancelled" ;;
+              *) echo "$2  ❓ unknown" ;;
             esac
           }
 
-          echo "lint_status=$(set_emoji $lint_result)" >> "$GITHUB_OUTPUT"
-          echo "deploy_status=$(set_emoji $deploy_result)" >> "$GITHUB_OUTPUT"
+          # overall emoji: fails if either job failed/cancelled, otherwise success
+          if [ "$lint_result" = "success" ] && [ "$deploy_result" = "success" ]; then
+            OVERALL="🎉"
+          else
+            OVERALL="🚨"
+          fi
+
+          echo "overall=$OVERALL" >> "$GITHUB_OUTPUT"
+          echo "lint_label=$(label 🧹Lint $lint_result ${{ needs.quality-gate.outputs.duration }})" >> "$GITHUB_OUTPUT"
+          echo "deploy_label=$(label 🚀Deploy $deploy_result ${{ needs.deploy.outputs.duration }})" >> "$GITHUB_OUTPUT"
 
       - name: Send Telegram message
         env:
@@ -111,17 +120,16 @@ jobs:
           SAFE_COMMIT_MSG=$(echo "$COMMIT_MSG" | head -n1 | sed 's/[_*`\[]/\\&/g')
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
 
-          MESSAGE="Environment: \`${{ steps.context.outputs.environment }}\`
-          Project: \`${{ steps.context.outputs.project_name }}\`
+          MESSAGE="${{ steps.status.outputs.overall }} ${{ steps.context.outputs.project_name }} ・ ${{ steps.context.outputs.environment }}
 
-          🐻‍❄️ ${AUTHOR} | ${SAFE_COMMIT_MSG}
-          🌿 ${{ github.ref_name }} | ${SHORT_SHA}
-          ⏱️ $(date -u '+%d-%b-%Y | %I:%M %p') UTC
+          🌿 ${{ github.ref_name }}  🔖 ${SHORT_SHA}
+          👤 ${AUTHOR}
+          💬 \"${SAFE_COMMIT_MSG}\"
 
-          🛠 Lints and Code Quality | ${{ needs.quality-gate.outputs.duration }} | ${{ steps.status.outputs.lint_status }}
-          🚀 Production Deployment | ${{ needs.deploy.outputs.duration }} | ${{ steps.status.outputs.deploy_status }}
+          ${{ steps.status.outputs.lint_label }}
+          ${{ steps.status.outputs.deploy_label }}
 
-          🔗 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          🔗 [View run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
 
           curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             --data-urlencode chat_id="${TELEGRAM_CHAT_ID}" \
