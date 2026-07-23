@@ -66,7 +66,7 @@ total_s = (
     else None
 )
 
-W, H = 1000 * 3, 640 * 3
+W, H = 1000, 640
 
 # Base canvas & vertical background gradient
 img = Image.new("RGBA", (W, H))
