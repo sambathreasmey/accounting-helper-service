@@ -1,5 +1,4 @@
 name: "Production Delivery Pipeline"
-
 on:
   push:
     branches:
@@ -9,34 +8,122 @@ jobs:
   quality-gate:
     name: "Lints & Code Quality"
     runs-on: ubuntu-latest
+    outputs:
+      duration: ${{ steps.timer.outputs.duration }}
     steps:
+      - id: start
+        run: echo "start=$(date +%s)" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
           python-version: "3.12"
-
       - name: Code Verification
         run: |
           uvx ruff check .
           uvx ruff format --check .
+      - id: timer
+        if: always()
+        run: |
+          END=$(date +%s)
+          START=${{ steps.start.outputs.start }}
+          echo "duration=$((END - START))s" >> "$GITHUB_OUTPUT"
 
   deploy:
     name: "Production Deployment"
     needs: quality-gate
     runs-on: ubuntu-latest
+    outputs:
+      duration: ${{ steps.timer.outputs.duration }}
     steps:
+      - id: start
+        run: echo "start=$(date +%s)" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
           python-version: "3.12"
-
       - name: Deploy to FastAPI Cloud
         run: uvx --from "fastapi[standard]" fastapi deploy
         env:
           FASTAPI_CLOUD_TOKEN: ${{ secrets.FASTAPI_CLOUD_TOKEN }}
           FASTAPI_CLOUD_APP_ID: ${{ secrets.FASTAPI_CLOUD_APP_ID }}
+      - id: timer
+        if: always()
+        run: |
+          END=$(date +%s)
+          START=${{ steps.start.outputs.start }}
+          echo "duration=$((END - START))s" >> "$GITHUB_OUTPUT"
+
+  notify:
+    name: "Telegram Notification"
+    needs: [quality-gate, deploy]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Derive dynamic context
+        id: context
+        run: |
+          # project = repo name, pulled straight from github context
+          PROJECT_NAME="${{ github.event.repository.name }}"
+
+          # map branch name to environment label dynamically
+          BRANCH="${{ github.ref_name }}"
+          case "$BRANCH" in
+            main|master) ENVIRONMENT="Production" ;;
+            uat) ENVIRONMENT="UAT" ;;
+            staging) ENVIRONMENT="Staging" ;;
+            dev|develop) ENVIRONMENT="Development" ;;
+            *) ENVIRONMENT="$BRANCH" ;;
+          esac
+
+          echo "project_name=$PROJECT_NAME" >> "$GITHUB_OUTPUT"
+          echo "environment=$ENVIRONMENT" >> "$GITHUB_OUTPUT"
+
+      - name: Set status emojis
+        id: status
+        run: |
+          lint_result="${{ needs.quality-gate.result }}"
+          deploy_result="${{ needs.deploy.result }}"
+
+          set_emoji() {
+            case "$1" in
+              success) echo "Success ✅" ;;
+              failure) echo "Failed ❌" ;;
+              skipped) echo "Skipped ⏭️" ;;
+              cancelled) echo "Cancelled 🚫" ;;
+              *) echo "Unknown ❓" ;;
+            esac
+          }
+
+          echo "lint_status=$(set_emoji $lint_result)" >> "$GITHUB_OUTPUT"
+          echo "deploy_status=$(set_emoji $deploy_result)" >> "$GITHUB_OUTPUT"
+
+      - name: Send Telegram message
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          AUTHOR: ${{ github.event.head_commit.author.name }}
+        run: |
+          SAFE_COMMIT_MSG=$(echo "$COMMIT_MSG" | head -n1 | sed 's/[_*`\[]/\\&/g')
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+
+          MESSAGE="Environment: \`${{ steps.context.outputs.environment }}\`
+          Project: \`${{ steps.context.outputs.project_name }}\`
+
+          🐻‍❄️ ${AUTHOR} | ${SAFE_COMMIT_MSG}
+          🌿 ${{ github.ref_name }} | ${SHORT_SHA}
+          ⏱️ $(date -u '+%d-%b-%Y | %I:%M %p') UTC
+
+          🛠 Lints & Code Quality | ${{ needs.quality-gate.outputs.duration }} | ${{ steps.status.outputs.lint_status }}
+          🚀 Production Deployment | ${{ needs.deploy.outputs.duration }} | ${{ steps.status.outputs.deploy_status }}
+
+          🔗 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            -d parse_mode="Markdown" \
+            -d text="${MESSAGE}"
