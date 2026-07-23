@@ -17,19 +17,19 @@ timestamp = os.environ["TIMESTAMP"]
 avatar_path = os.environ.get("AVATAR_PATH", "")
 
 # ---------- cute dark palette ----------
-bg_top, bg_bottom = (26, 22, 46), (18, 15, 33)          # deep indigo -> near-black
-card_bg = (34, 29, 56)                                    # soft plum
+bg_top, bg_bottom = (26, 22, 46), (18, 15, 33)  # deep indigo -> near-black
+card_bg = (34, 29, 56)  # soft plum
 card_bg_hi = (41, 35, 66)
 text_bright = (245, 242, 255)
 text_muted = (154, 146, 186)
 divider = (55, 48, 84)
 
-mint = (110, 231, 183)      # success
-coral = (255, 128, 149)     # failure
+mint = (110, 231, 183)  # success
+coral = (255, 128, 149)  # failure
 gray_skip = (99, 91, 128)
-sun = (255, 209, 102)       # decorative yellow
-sky = (125, 211, 252)       # decorative blue
-lilac = (196, 167, 255)     # decorative purple
+sun = (255, 209, 102)  # decorative yellow
+sky = (125, 211, 252)  # decorative blue
+lilac = (196, 167, 255)  # decorative purple
 
 if overall_ok:
     accent, accent_glow = mint, mint
@@ -60,7 +60,11 @@ def format_seconds(total):
 
 lint_s = parse_seconds(lint_duration)
 deploy_s = parse_seconds(deploy_duration)
-total_s = (lint_s or 0) + (deploy_s or 0) if (lint_s is not None or deploy_s is not None) else None
+total_s = (
+    (lint_s or 0) + (deploy_s or 0)
+    if (lint_s is not None or deploy_s is not None)
+    else None
+)
 
 W, H = 1000, 640
 
@@ -114,7 +118,9 @@ img.paste(shadow, (0, 0), shadow)
 # faint accent glow ring around the card edge
 glow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
 gd = ImageDraw.Draw(glow)
-gd.rounded_rectangle([40, 40, W - 40, H - 40], radius=36, outline=accent_glow + (140,), width=3)
+gd.rounded_rectangle(
+    [40, 40, W - 40, H - 40], radius=36, outline=accent_glow + (140,), width=3
+)
 glow = glow.filter(ImageFilter.GaussianBlur(6))
 img.paste(glow, (0, 0), glow)
 
@@ -129,14 +135,28 @@ pad = 64
 # ---------- vector icon helpers ----------
 def draw_check(d, cx, cy, r, color, weight=4):
     d.line(
-        [(cx - r * 0.55, cy), (cx - r * 0.15, cy + r * 0.45), (cx + r * 0.6, cy - r * 0.45)],
-        fill=color, width=weight, joint="curve",
+        [
+            (cx - r * 0.55, cy),
+            (cx - r * 0.15, cy + r * 0.45),
+            (cx + r * 0.6, cy - r * 0.45),
+        ],
+        fill=color,
+        width=weight,
+        joint="curve",
     )
 
 
 def draw_cross(d, cx, cy, r, color, weight=4):
-    d.line([(cx - r * 0.5, cy - r * 0.5), (cx + r * 0.5, cy + r * 0.5)], fill=color, width=weight)
-    d.line([(cx - r * 0.5, cy + r * 0.5), (cx + r * 0.5, cy - r * 0.5)], fill=color, width=weight)
+    d.line(
+        [(cx - r * 0.5, cy - r * 0.5), (cx + r * 0.5, cy + r * 0.5)],
+        fill=color,
+        width=weight,
+    )
+    d.line(
+        [(cx - r * 0.5, cy + r * 0.5), (cx + r * 0.5, cy - r * 0.5)],
+        fill=color,
+        width=weight,
+    )
 
 
 def draw_dash(d, cx, cy, r, color, weight=4):
@@ -145,27 +165,64 @@ def draw_dash(d, cx, cy, r, color, weight=4):
 
 def draw_leaf_icon(d, x, y, size, color):
     d.pieslice([x, y, x + size, y + size], 200, 20, fill=color)
-    d.line([(x + size * 0.15, y + size * 0.85), (x + size * 0.85, y + size * 0.15)], fill=color, width=3)
+    d.line(
+        [(x + size * 0.15, y + size * 0.85), (x + size * 0.85, y + size * 0.15)],
+        fill=color,
+        width=3,
+    )
 
 
 def draw_branch_icon(d, x, y, size, color):
     cx = x + size * 0.25
     d.line([(cx, y + size * 0.1), (cx, y + size * 0.9)], fill=color, width=4)
-    d.ellipse([cx - 5, y + size * 0.05, cx + 5, y + size * 0.15], outline=color, width=3)
-    d.ellipse([cx - 5, y + size * 0.75, cx + 5, y + size * 0.95], outline=color, width=3)
-    d.ellipse([x + size * 0.65, y + size * 0.35, x + size * 0.75, y + size * 0.55], outline=color, width=3)
-    d.line([(cx, y + size * 0.5), (x + size * 0.7, y + size * 0.45)], fill=color, width=3)
+    d.ellipse(
+        [cx - 5, y + size * 0.05, cx + 5, y + size * 0.15], outline=color, width=3
+    )
+    d.ellipse(
+        [cx - 5, y + size * 0.75, cx + 5, y + size * 0.95], outline=color, width=3
+    )
+    d.ellipse(
+        [x + size * 0.65, y + size * 0.35, x + size * 0.75, y + size * 0.55],
+        outline=color,
+        width=3,
+    )
+    d.line(
+        [(cx, y + size * 0.5), (x + size * 0.7, y + size * 0.45)], fill=color, width=3
+    )
 
 
 def draw_person_icon(d, x, y, size, color):
-    d.ellipse([x + size * 0.32, y + size * 0.05, x + size * 0.68, y + size * 0.42], outline=color, width=3)
-    d.arc([x + size * 0.15, y + size * 0.45, x + size * 0.85, y + size * 1.15], 200, 340, fill=color, width=3)
+    d.ellipse(
+        [x + size * 0.32, y + size * 0.05, x + size * 0.68, y + size * 0.42],
+        outline=color,
+        width=3,
+    )
+    d.arc(
+        [x + size * 0.15, y + size * 0.45, x + size * 0.85, y + size * 1.15],
+        200,
+        340,
+        fill=color,
+        width=3,
+    )
 
 
 def draw_message_icon(d, x, y, size, color):
-    d.rounded_rectangle([x + size * 0.05, y + size * 0.15, x + size * 0.95, y + size * 0.75], radius=6, outline=color, width=3)
-    d.line([(x + size * 0.25, y + size * 0.75), (x + size * 0.15, y + size * 0.95)], fill=color, width=3)
-    d.line([(x + size * 0.15, y + size * 0.95), (x + size * 0.4, y + size * 0.75)], fill=color, width=3)
+    d.rounded_rectangle(
+        [x + size * 0.05, y + size * 0.15, x + size * 0.95, y + size * 0.75],
+        radius=6,
+        outline=color,
+        width=3,
+    )
+    d.line(
+        [(x + size * 0.25, y + size * 0.75), (x + size * 0.15, y + size * 0.95)],
+        fill=color,
+        width=3,
+    )
+    d.line(
+        [(x + size * 0.15, y + size * 0.95), (x + size * 0.4, y + size * 0.75)],
+        fill=color,
+        width=3,
+    )
 
 
 def draw_clock_icon(d, x, y, size, color, weight=3):
@@ -178,17 +235,42 @@ def draw_clock_icon(d, x, y, size, color, weight=3):
 def draw_broom_icon(d, x, y, size, color):
     d.line([(x + size * 0.2, y), (x + size * 0.8, y + size * 0.8)], fill=color, width=4)
     d.polygon(
-        [(x + size * 0.65, y + size * 0.6), (x + size * 1.0, y + size * 0.75),
-         (x + size * 0.9, y + size * 1.0), (x + size * 0.55, y + size * 0.85)],
+        [
+            (x + size * 0.65, y + size * 0.6),
+            (x + size * 1.0, y + size * 0.75),
+            (x + size * 0.9, y + size * 1.0),
+            (x + size * 0.55, y + size * 0.85),
+        ],
         fill=color,
     )
 
 
 def draw_rocket_icon(d, x, y, size, color):
     cx = x + size / 2
-    d.polygon([(cx, y), (x + size * 0.75, y + size * 0.65), (x + size * 0.25, y + size * 0.65)], fill=color)
-    d.polygon([(x + size * 0.25, y + size * 0.65), (x + size * 0.1, y + size), (x + size * 0.35, y + size * 0.8)], fill=color)
-    d.polygon([(x + size * 0.75, y + size * 0.65), (x + size * 0.9, y + size), (x + size * 0.65, y + size * 0.8)], fill=color)
+    d.polygon(
+        [
+            (cx, y),
+            (x + size * 0.75, y + size * 0.65),
+            (x + size * 0.25, y + size * 0.65),
+        ],
+        fill=color,
+    )
+    d.polygon(
+        [
+            (x + size * 0.25, y + size * 0.65),
+            (x + size * 0.1, y + size),
+            (x + size * 0.35, y + size * 0.8),
+        ],
+        fill=color,
+    )
+    d.polygon(
+        [
+            (x + size * 0.75, y + size * 0.65),
+            (x + size * 0.9, y + size),
+            (x + size * 0.65, y + size * 0.8),
+        ],
+        fill=color,
+    )
 
 
 def draw_bolt_icon(d, x, y, size, color):
@@ -207,6 +289,7 @@ def draw_bolt_icon(d, x, y, size, color):
 
 def draw_star(d, cx, cy, r, color):
     import math
+
     pts = []
     for i in range(10):
         ang = math.pi / 2 + i * math.pi / 5
@@ -229,18 +312,29 @@ banner_w = icon_zone + text_w + 50
 
 banner_glow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
 bgd = ImageDraw.Draw(banner_glow)
-bgd.rounded_rectangle([pad, pad, pad + banner_w, pad + banner_h], radius=banner_h // 2, fill=accent + (255,))
+bgd.rounded_rectangle(
+    [pad, pad, pad + banner_w, pad + banner_h],
+    radius=banner_h // 2,
+    fill=accent + (255,),
+)
 banner_glow = banner_glow.filter(ImageFilter.GaussianBlur(16))
 img.paste(banner_glow, (0, 0), banner_glow)
 draw = ImageDraw.Draw(img, "RGBA")
 
-draw.rounded_rectangle([pad, pad, pad + banner_w, pad + banner_h], radius=banner_h // 2, fill=accent)
+draw.rounded_rectangle(
+    [pad, pad, pad + banner_w, pad + banner_h], radius=banner_h // 2, fill=accent
+)
 icon_cx, icon_cy = pad + icon_zone / 2 + 6, pad + banner_h / 2
 if banner_icon == "check":
     draw_check(draw, icon_cx, icon_cy, 16, card_bg, weight=5)
 else:
     draw_cross(draw, icon_cx, icon_cy, 14, card_bg, weight=5)
-draw.text((pad + icon_zone, pad + (banner_h - (bbox[3] - bbox[1])) / 2 - bbox[1]), banner_text, font=f_banner, fill=card_bg)
+draw.text(
+    (pad + icon_zone, pad + (banner_h - (bbox[3] - bbox[1])) / 2 - bbox[1]),
+    banner_text,
+    font=f_banner,
+    fill=card_bg,
+)
 
 
 # ---------- committer avatar, top right ----------
@@ -256,8 +350,12 @@ def initials_from_name(name):
 def pastel_from_name(name):
     h = sum(ord(c) for c in name)
     palette = [
-        (255, 154, 178), (255, 200, 130), (255, 235, 130),
-        (150, 235, 190), (140, 210, 255), (200, 170, 255),
+        (255, 154, 178),
+        (255, 200, 130),
+        (255, 235, 130),
+        (150, 235, 190),
+        (140, 210, 255),
+        (200, 170, 255),
     ]
     return palette[h % len(palette)]
 
@@ -267,7 +365,12 @@ avatar_x = W - pad - avatar_d
 avatar_y = pad - 6
 
 ring_pad = 6
-ring_box = [avatar_x - ring_pad, avatar_y - ring_pad, avatar_x + avatar_d + ring_pad, avatar_y + avatar_d + ring_pad]
+ring_box = [
+    avatar_x - ring_pad,
+    avatar_y - ring_pad,
+    avatar_x + avatar_d + ring_pad,
+    avatar_y + avatar_d + ring_pad,
+]
 ring_glow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
 rgd = ImageDraw.Draw(ring_glow)
 rgd.ellipse(ring_box, fill=accent + (255,))
@@ -289,13 +392,17 @@ if avatar_path and os.path.exists(avatar_path):
 
 if not avatar_drawn:
     badge_color = pastel_from_name(author)
-    draw.ellipse([avatar_x, avatar_y, avatar_x + avatar_d, avatar_y + avatar_d], fill=badge_color)
+    draw.ellipse(
+        [avatar_x, avatar_y, avatar_x + avatar_d, avatar_y + avatar_d], fill=badge_color
+    )
     initials = initials_from_name(author)
     ibbox = draw.textbbox((0, 0), initials, font=f_avatar)
     tw, th = ibbox[2] - ibbox[0], ibbox[3] - ibbox[1]
     draw.text(
         (avatar_x + (avatar_d - tw) / 2, avatar_y + (avatar_d - th) / 2 - ibbox[1]),
-        initials, font=f_avatar, fill=(45, 35, 60),
+        initials,
+        font=f_avatar,
+        fill=(45, 35, 60),
     )
 
 # ---------- title + environment ----------
@@ -314,7 +421,9 @@ y += 30
 row_icon = 22
 draw_branch_icon(draw, pad, y - 2, row_icon, text_muted)
 draw.text((pad + 34, y), "Branch", font=f_label, fill=text_muted)
-draw.text((pad + 160, y - 3), f"{branch}  \u00b7  {short_sha}", font=f_body, fill=text_bright)
+draw.text(
+    (pad + 160, y - 3), f"{branch}  \u00b7  {short_sha}", font=f_body, fill=text_bright
+)
 y += 42
 
 draw_person_icon(draw, pad, y - 2, row_icon, text_muted)
@@ -325,7 +434,9 @@ y += 42
 draw_message_icon(draw, pad, y - 2, row_icon, text_muted)
 draw.text((pad + 34, y), "Message", font=f_label, fill=text_muted)
 msg_display = commit_msg if len(commit_msg) <= 46 else commit_msg[:43] + "..."
-draw.text((pad + 160, y - 3), f"\u201c{msg_display}\u201d", font=f_body, fill=text_bright)
+draw.text(
+    (pad + 160, y - 3), f"\u201c{msg_display}\u201d", font=f_body, fill=text_bright
+)
 
 y += 60
 draw.line([pad, y, W - pad, y], fill=divider, width=2)
@@ -363,13 +474,27 @@ ts_text = timestamp
 ts_bbox = draw.textbbox((0, 0), ts_text, font=f_footer)
 ts_text_w = ts_bbox[2] - ts_bbox[0]
 ts_pill_w = 40 + 14 + ts_text_w + 20
-draw.rounded_rectangle([pad, y, pad + ts_pill_w, y + footer_h], radius=footer_h // 2, fill=card_bg_hi)
+draw.rounded_rectangle(
+    [pad, y, pad + ts_pill_w, y + footer_h], radius=footer_h // 2, fill=card_bg_hi
+)
 chip_d = footer_h - 8
 draw.ellipse([pad + 4, y + 4, pad + 4 + chip_d, y + 4 + chip_d], fill=sky)
-draw_clock_icon(draw, pad + 4 + chip_d * 0.22, y + 4 + chip_d * 0.22, chip_d * 0.56, card_bg, weight=3)
+draw_clock_icon(
+    draw,
+    pad + 4 + chip_d * 0.22,
+    y + 4 + chip_d * 0.22,
+    chip_d * 0.56,
+    card_bg,
+    weight=3,
+)
 draw.text(
-    (pad + 4 + chip_d + 14, y + (footer_h - (ts_bbox[3] - ts_bbox[1])) / 2 - ts_bbox[1]),
-    ts_text, font=f_footer, fill=text_bright,
+    (
+        pad + 4 + chip_d + 14,
+        y + (footer_h - (ts_bbox[3] - ts_bbox[1])) / 2 - ts_bbox[1],
+    ),
+    ts_text,
+    font=f_footer,
+    fill=text_bright,
 )
 
 # total-duration pill (right of the timestamp pill), only if we have data
@@ -379,12 +504,23 @@ if total_s is not None:
     dur_text_w = dur_bbox[2] - dur_bbox[0]
     dur_pill_w = 40 + 14 + dur_text_w + 20
     dur_x = pad + ts_pill_w + 16
-    draw.rounded_rectangle([dur_x, y, dur_x + dur_pill_w, y + footer_h], radius=footer_h // 2, fill=card_bg_hi)
+    draw.rounded_rectangle(
+        [dur_x, y, dur_x + dur_pill_w, y + footer_h],
+        radius=footer_h // 2,
+        fill=card_bg_hi,
+    )
     draw.ellipse([dur_x + 4, y + 4, dur_x + 4 + chip_d, y + 4 + chip_d], fill=sun)
-    draw_bolt_icon(draw, dur_x + 4 + chip_d * 0.28, y + 4 + chip_d * 0.15, chip_d * 0.5, card_bg)
+    draw_bolt_icon(
+        draw, dur_x + 4 + chip_d * 0.28, y + 4 + chip_d * 0.15, chip_d * 0.5, card_bg
+    )
     draw.text(
-        (dur_x + 4 + chip_d + 14, y + (footer_h - (dur_bbox[3] - dur_bbox[1])) / 2 - dur_bbox[1]),
-        dur_text, font=f_footer, fill=text_bright,
+        (
+            dur_x + 4 + chip_d + 14,
+            y + (footer_h - (dur_bbox[3] - dur_bbox[1])) / 2 - dur_bbox[1],
+        ),
+        dur_text,
+        font=f_footer,
+        fill=text_bright,
     )
 
 img.save("card.png")
