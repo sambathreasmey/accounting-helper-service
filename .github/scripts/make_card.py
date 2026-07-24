@@ -25,7 +25,7 @@ avatar_path = os.environ.get("AVATAR_PATH", "")
 # regardless of how big the internal canvas is -- this is what was missing before.
 BASE_W, BASE_H = 1000, 640
 SS = 4
-FINAL_SCALE = 2
+FINAL_SCALE = 3
 
 
 def S(v):
