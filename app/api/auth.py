@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Header, HTTPException, Depends  # Added Depends
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Header, HTTPException  # Added Depends
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession  # Added AsyncSession
 
@@ -10,10 +12,12 @@ from app.core.security import (
     decode_token,
     validate_init_data,
 )
-from app.db.database import get_session
 from app.db.crud import upsert_user_profile
+from app.db.database import get_session
 
 router = APIRouter(prefix="/api/webapp/auth", tags=["Auth"])
+
+SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
 
 class TokenResponse(BaseModel):
@@ -28,8 +32,8 @@ class RefreshRequest(BaseModel):
 
 @router.post("/telegram", response_model=TokenResponse)
 async def auth_telegram(
-    x_telegram_init_data: str | None = Header(default=None),
-    session: AsyncSession = Depends(get_session),  # 1. Inject the database session
+    session: SessionDep,
+    x_telegram_init_data: Annotated[str | None, Header()] = None,
 ):
     if not x_telegram_init_data:
         raise HTTPException(status_code=401, detail="Missing X-Telegram-Init-Data")

@@ -1,12 +1,14 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
+
 from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+
+from app.api.auth import router as auth_router
 from app.api.po_callback import router as po_callback_router
 from app.api.telegram import router as telegram_router
 from app.api.webapp_api import router as webapp_api_router
-from app.api.auth import router as auth_router
 from app.core.config import settings
 from app.db.database import dispose_engine, init_models
 from app.services.telegram_client import telegram_client

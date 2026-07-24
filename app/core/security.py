@@ -2,13 +2,14 @@ import hashlib
 import hmac
 import json
 import time
+import uuid
+from datetime import UTC, datetime, timedelta
 from urllib.parse import parse_qsl
 
-from app.core.config import settings
-from datetime import datetime, timedelta, timezone
-import uuid
 import jwt
 from jwt import PyJWTError
+
+from app.core.config import settings
 
 INIT_DATA_MAX_AGE_SECONDS = 24 * 60 * 60  # Telegram WebApp sessions are short-lived
 
@@ -65,7 +66,7 @@ class InvalidToken(Exception):
 
 
 def create_access_token(chat_id: int) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {
         "sub": str(chat_id),
         "iat": now,
@@ -77,7 +78,7 @@ def create_access_token(chat_id: int) -> str:
 
 
 def create_refresh_token(chat_id: int) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {
         "sub": str(chat_id),
         "iat": now,

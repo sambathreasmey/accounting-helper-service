@@ -1,4 +1,5 @@
 import uuid
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -26,10 +27,13 @@ DASHBOARD_CACHE_TTL = 40
 HISTORY_CACHE_TTL = 40
 
 bearer_scheme = HTTPBearer(auto_error=False)
+BearerToken = Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)]
+
+SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
 
 async def get_chat_id(
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    credentials: BearerToken = None,
 ) -> int:
     """Resolves chat_id from a JWT access token (Authorization: Bearer ...)."""
     if credentials is None:
@@ -42,8 +46,8 @@ async def get_chat_id(
 
 @router.get("/me")
 async def get_me(
+    session: SessionDep,
     chat_id: int = Depends(get_chat_id),
-    session: AsyncSession = Depends(get_session),
 ):
     """Fetches full authenticated Telegram profile information for the UI header."""
     user = await get_user_profile(session, chat_id=chat_id)
@@ -62,8 +66,8 @@ async def get_me(
 
 @router.get("/dashboard")
 async def get_dashboard(
+    session: SessionDep,
     chat_id: int = Depends(get_chat_id),
-    session: AsyncSession = Depends(get_session),
 ):
     cache_key = f"webapp:{chat_id}:dashboard"
     cached = await cache_get(cache_key)
@@ -77,8 +81,8 @@ async def get_dashboard(
 
 @router.get("/history")
 async def get_history(
+    session: SessionDep,
     chat_id: int = Depends(get_chat_id),
-    session: AsyncSession = Depends(get_session),
     status_filter: str | None = Query(default=None, alias="status"),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
@@ -115,8 +119,8 @@ async def get_history(
 @router.get("/po/{po_id}")
 async def get_po_detail(
     po_id: uuid.UUID,
+    session: SessionDep,
     chat_id: int = Depends(get_chat_id),
-    session: AsyncSession = Depends(get_session),
 ):
     po = await get_po(session, po_id)
     if po is None or po.chat_id != chat_id:
@@ -127,8 +131,8 @@ async def get_po_detail(
 @router.delete("/po/{po_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_po_detail(
     po_id: uuid.UUID,
+    session: SessionDep,
     chat_id: int = Depends(get_chat_id),
-    session: AsyncSession = Depends(get_session),
 ):
     po = await get_po(session, po_id)
     if po is None or po.chat_id != chat_id:
@@ -142,8 +146,8 @@ async def delete_po_detail(
 async def regenerate_po(
     po_id: uuid.UUID,
     body: RegeneratePORequest,
+    session: SessionDep,
     chat_id: int = Depends(get_chat_id),
-    session: AsyncSession = Depends(get_session),
 ):
     original = await get_po(session, po_id)
     if original is None or original.chat_id != chat_id:

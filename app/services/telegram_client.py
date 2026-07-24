@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
@@ -58,8 +58,8 @@ class TelegramClient:
         self,
         chat_id: int,
         text: str,
-        markup: Optional[dict] = None,
-        parse_mode: Optional[str] = None,
+        markup: dict | None = None,
+        parse_mode: str | None = None,
         **kwargs: Any,
     ) -> dict:
         payload: dict = {"chat_id": chat_id, "text": text, **kwargs}
@@ -93,8 +93,8 @@ class TelegramClient:
         self,
         chat_id: int,
         photo: str,
-        caption: Optional[str] = None,
-        markup: Optional[dict] = None,
+        caption: str | None = None,
+        markup: dict | None = None,
         **kwargs: Any,
     ) -> dict:
         payload: dict = {"chat_id": chat_id, "photo": photo, **kwargs}
@@ -111,8 +111,8 @@ class TelegramClient:
         self,
         chat_id: int,
         document: str,
-        caption: Optional[str] = None,
-        markup: Optional[dict] = None,
+        caption: str | None = None,
+        markup: dict | None = None,
         **kwargs: Any,
     ) -> dict:
         payload: dict = {"chat_id": chat_id, "document": document, **kwargs}
@@ -134,8 +134,8 @@ class TelegramClient:
         chat_id: int,
         message_id: int,
         text: str,
-        markup: Optional[dict] = None,
-        parse_mode: Optional[str] = None,
+        markup: dict | None = None,
+        parse_mode: str | None = None,
         **kwargs: Any,
     ) -> dict:
         payload: dict = {
@@ -154,7 +154,7 @@ class TelegramClient:
         return response.json()
 
     async def edit_message_reply_markup(
-        self, chat_id: int, message_id: int, markup: Optional[dict] = None
+        self, chat_id: int, message_id: int, markup: dict | None = None
     ) -> dict:
         payload: dict = {"chat_id": chat_id, "message_id": message_id}
         if markup is not None:
@@ -178,7 +178,7 @@ class TelegramClient:
     async def answer_callback_query(
         self,
         callback_query_id: str,
-        text: Optional[str] = None,
+        text: str | None = None,
         show_alert: bool = False,
     ) -> dict:
         payload: dict = {
@@ -213,7 +213,7 @@ telegram_client = TelegramClient(settings.TELEGRAM_BOT_TOKEN)
 
 
 async def send_message(
-    chat_id: int, text: str, markup: Optional[dict] = None, **kwargs: Any
+    chat_id: int, text: str, markup: dict | None = None, **kwargs: Any
 ) -> dict:
     return await telegram_client.send_message(chat_id, text, markup=markup, **kwargs)
 
@@ -222,7 +222,7 @@ async def edit_message_text(
     chat_id: int,
     message_id: int,
     text: str,
-    markup: Optional[dict] = None,
+    markup: dict | None = None,
     **kwargs: Any,
 ) -> dict:
     return await telegram_client.edit_message_text(
@@ -235,7 +235,7 @@ async def delete_message(chat_id: int, message_id: int) -> dict:
 
 
 async def answer_callback_query(
-    callback_query_id: str, text: Optional[str] = None, show_alert: bool = False
+    callback_query_id: str, text: str | None = None, show_alert: bool = False
 ) -> dict:
     return await telegram_client.answer_callback_query(
         callback_query_id, text=text, show_alert=show_alert

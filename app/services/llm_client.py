@@ -1,5 +1,7 @@
 import logging
-from groq import Groq
+
+from groq import APIConnectionError, APIError, Groq, GroqError
+
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -28,6 +30,6 @@ def call_llama(
             top_p=1,
         )
         return response.choices[0].message.content
-    except Exception as e:
+    except (GroqError, APIError, APIConnectionError) as e:
         logger.error(f"Groq API Error: {e}")
         return "⚠️ Sorry, I'm having trouble thinking right now. Please try again later."

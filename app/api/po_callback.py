@@ -1,5 +1,6 @@
 import logging
 import uuid
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,11 +16,13 @@ from app.services.telegram_client import telegram_client
 logger = logging.getLogger("po.callback")
 router = APIRouter(prefix="/api/po", tags=["PO Callback"])
 
+SessionDep = Annotated[AsyncSession, Depends(get_session)]
+
 
 @router.post("/callback", status_code=status.HTTP_200_OK)
 async def po_generation_callback(
     body: POCallbackRequest,
-    session: AsyncSession = Depends(get_session),
+    session: SessionDep,
     x_callback_secret: str | None = Header(default=None),
 ):
     """

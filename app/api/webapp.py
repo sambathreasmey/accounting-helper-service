@@ -1,14 +1,16 @@
+from typing import Annotated
+
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.security import InvalidToken, decode_token
-# ...your other existing imports stay as-is
 
 bearer_scheme = HTTPBearer(auto_error=False)
+BearerToken = Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)]
 
 
 async def get_chat_id(
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    credentials: BearerToken = None,
 ) -> int:
     """Resolves chat_id from a JWT access token (Authorization: Bearer ...)."""
     if credentials is None:
