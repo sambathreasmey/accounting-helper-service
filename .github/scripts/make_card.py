@@ -1,5 +1,6 @@
 import os
 import re
+
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 # ---------- ENVIRONMENT VARIABLES ----------
@@ -122,7 +123,10 @@ FONT_DIR = "/usr/share/fonts/truetype/dejavu"
 
 
 def get_font(path, size):
-    return ImageFont.truetype(os.path.join(FONT_DIR, path), S(size))
+    try:
+        return ImageFont.truetype(os.path.join(FONT_DIR, path), S(size))
+    except OSError:
+        return ImageFont.load_default()
 
 
 f_title = get_font("DejaVuSans-Bold.ttf", 38)
@@ -313,7 +317,7 @@ if avatar_path and os.path.exists(avatar_path):
         ImageDraw.Draw(mask).ellipse([0, 0, avatar_d, avatar_d], fill=255)
         img.paste(av, (avatar_x, avatar_y), mask)
         avatar_drawn = True
-    except Exception:
+    except (OSError, ValueError):
         avatar_drawn = False
 
 if not avatar_drawn:
