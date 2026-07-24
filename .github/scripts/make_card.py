@@ -29,7 +29,7 @@ FINAL_SCALE = 2
 
 
 def S(v):
-    return int(round(v * SS))
+    return round(v * SS)
 
 
 W, H = BASE_W * SS, BASE_H * SS
@@ -122,10 +122,7 @@ FONT_DIR = "/usr/share/fonts/truetype/dejavu"
 
 
 def get_font(path, size):
-    try:
-        return ImageFont.truetype(os.path.join(FONT_DIR, path), S(size))
-    except Exception:
-        return ImageFont.load_default()
+    return ImageFont.truetype(os.path.join(FONT_DIR, path), S(size))
 
 
 f_title = get_font("DejaVuSans-Bold.ttf", 38)
