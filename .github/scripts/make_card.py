@@ -144,25 +144,43 @@ card_box = [pad, pad, W - pad, H - pad]
 
 shadow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
 sd = ImageDraw.Draw(shadow)
-sd.rounded_rectangle([pad, pad + S(8), W - pad, H - pad + S(8)], radius=S(28), fill=(0, 0, 0, 150))
+sd.rounded_rectangle(
+    [pad, pad + S(8), W - pad, H - pad + S(8)], radius=S(28), fill=(0, 0, 0, 150)
+)
 shadow = shadow.filter(ImageFilter.GaussianBlur(S(16)))
 img.paste(shadow, (0, 0), shadow)
 
 draw = ImageDraw.Draw(img, "RGBA")
-draw.rounded_rectangle(card_box, radius=S(28), fill=card_bg, outline=card_border, width=S(2))
+draw.rounded_rectangle(
+    card_box, radius=S(28), fill=card_bg, outline=card_border, width=S(2)
+)
 
 
 # ---------- VECTOR ICONS ----------
 def draw_check(d, cx, cy, r, color, weight):
     d.line(
-        [(cx - r * 0.5, cy), (cx - r * 0.1, cy + r * 0.4), (cx + r * 0.5, cy - r * 0.4)],
-        fill=color, width=weight, joint="curve",
+        [
+            (cx - r * 0.5, cy),
+            (cx - r * 0.1, cy + r * 0.4),
+            (cx + r * 0.5, cy - r * 0.4),
+        ],
+        fill=color,
+        width=weight,
+        joint="curve",
     )
 
 
 def draw_cross(d, cx, cy, r, color, weight):
-    d.line([(cx - r * 0.4, cy - r * 0.4), (cx + r * 0.4, cy + r * 0.4)], fill=color, width=weight)
-    d.line([(cx - r * 0.4, cy + r * 0.4), (cx + r * 0.4, cy - r * 0.4)], fill=color, width=weight)
+    d.line(
+        [(cx - r * 0.4, cy - r * 0.4), (cx + r * 0.4, cy + r * 0.4)],
+        fill=color,
+        width=weight,
+    )
+    d.line(
+        [(cx - r * 0.4, cy + r * 0.4), (cx + r * 0.4, cy - r * 0.4)],
+        fill=color,
+        width=weight,
+    )
 
 
 def draw_dash(d, cx, cy, r, color, weight):
@@ -174,8 +192,16 @@ def draw_branch_icon(d, x, y, size, color):
     dot_r = max(2, size * 0.09)
     cx = x + size * 0.3
     d.line([(cx, y + size * 0.15), (cx, y + size * 0.85)], fill=color, width=w)
-    d.ellipse([cx - dot_r, y + size * 0.08, cx + dot_r, y + size * 0.08 + dot_r * 2], outline=color, width=w)
-    d.ellipse([cx - dot_r, y + size * 0.78, cx + dot_r, y + size * 0.78 + dot_r * 2], outline=color, width=w)
+    d.ellipse(
+        [cx - dot_r, y + size * 0.08, cx + dot_r, y + size * 0.08 + dot_r * 2],
+        outline=color,
+        width=w,
+    )
+    d.ellipse(
+        [cx - dot_r, y + size * 0.78, cx + dot_r, y + size * 0.78 + dot_r * 2],
+        outline=color,
+        width=w,
+    )
     bx = x + size * 0.72
     by = y + size * 0.4
     d.ellipse([bx - dot_r, by - dot_r, bx + dot_r, by + dot_r], outline=color, width=w)
@@ -184,18 +210,34 @@ def draw_branch_icon(d, x, y, size, color):
 
 def draw_person_icon(d, x, y, size, color):
     w = max(2, S(2))
-    d.ellipse([x + size * 0.3, y + size * 0.08, x + size * 0.7, y + size * 0.48], outline=color, width=w)
-    d.arc([x + size * 0.12, y + size * 0.42, x + size * 0.88, y + size * 1.02], 200, 340, fill=color, width=w)
+    d.ellipse(
+        [x + size * 0.3, y + size * 0.08, x + size * 0.7, y + size * 0.48],
+        outline=color,
+        width=w,
+    )
+    d.arc(
+        [x + size * 0.12, y + size * 0.42, x + size * 0.88, y + size * 1.02],
+        200,
+        340,
+        fill=color,
+        width=w,
+    )
 
 
 def draw_message_icon(d, x, y, size, color):
     w = max(2, S(2))
     d.rounded_rectangle(
         [x + size * 0.08, y + size * 0.14, x + size * 0.92, y + size * 0.72],
-        radius=size * 0.08, outline=color, width=w,
+        radius=size * 0.08,
+        outline=color,
+        width=w,
     )
     d.polygon(
-        [(x + size * 0.26, y + size * 0.72), (x + size * 0.16, y + size * 0.94), (x + size * 0.46, y + size * 0.72)],
+        [
+            (x + size * 0.26, y + size * 0.72),
+            (x + size * 0.16, y + size * 0.94),
+            (x + size * 0.46, y + size * 0.72),
+        ],
         fill=color,
     )
 
@@ -210,8 +252,12 @@ def draw_clock_icon(d, x, y, size, color):
 
 def draw_bolt_icon(d, x, y, size, color):
     pts = [
-        (x + size * 0.55, y), (x + size * 0.15, y + size * 0.55), (x + size * 0.45, y + size * 0.55),
-        (x + size * 0.4, y + size), (x + size * 0.85, y + size * 0.4), (x + size * 0.55, y + size * 0.4),
+        (x + size * 0.55, y),
+        (x + size * 0.15, y + size * 0.55),
+        (x + size * 0.45, y + size * 0.55),
+        (x + size * 0.4, y + size),
+        (x + size * 0.85, y + size * 0.4),
+        (x + size * 0.55, y + size * 0.4),
     ]
     d.polygon(pts, fill=color)
 
@@ -223,7 +269,11 @@ banner_h = S(46)
 banner_w = text_w + S(66)
 banner_x, banner_y = pad + S(24), pad + S(24)
 
-draw.rounded_rectangle([banner_x, banner_y, banner_x + banner_w, banner_y + banner_h], radius=banner_h // 2, fill=accent)
+draw.rounded_rectangle(
+    [banner_x, banner_y, banner_x + banner_w, banner_y + banner_h],
+    radius=banner_h // 2,
+    fill=accent,
+)
 icon_cx = banner_x + S(26)
 icon_cy = banner_y + banner_h / 2
 if banner_icon == "check":
@@ -233,7 +283,9 @@ else:
 
 draw.text(
     (banner_x + S(46), banner_y + (banner_h - (bbox[3] - bbox[1])) / 2 - bbox[1]),
-    banner_text, font=f_banner, fill=card_bg,
+    banner_text,
+    font=f_banner,
+    fill=card_bg,
 )
 
 # ---------- AVATAR (top right, with colored status ring) ----------
@@ -243,14 +295,23 @@ avatar_y = pad + S(20)
 ring_pad = S(4)
 
 draw.ellipse(
-    [avatar_x - ring_pad, avatar_y - ring_pad, avatar_x + avatar_d + ring_pad, avatar_y + avatar_d + ring_pad],
+    [
+        avatar_x - ring_pad,
+        avatar_y - ring_pad,
+        avatar_x + avatar_d + ring_pad,
+        avatar_y + avatar_d + ring_pad,
+    ],
     fill=accent,
 )
 
 avatar_drawn = False
 if avatar_path and os.path.exists(avatar_path):
     try:
-        av = Image.open(avatar_path).convert("RGB").resize((avatar_d, avatar_d), Image.LANCZOS)
+        av = (
+            Image.open(avatar_path)
+            .convert("RGB")
+            .resize((avatar_d, avatar_d), Image.LANCZOS)
+        )
         mask = Image.new("L", (avatar_d, avatar_d), 0)
         ImageDraw.Draw(mask).ellipse([0, 0, avatar_d, avatar_d], fill=255)
         img.paste(av, (avatar_x, avatar_y), mask)
@@ -259,13 +320,19 @@ if avatar_path and os.path.exists(avatar_path):
         avatar_drawn = False
 
 if not avatar_drawn:
-    initials = (author[:2] if len(author) <= 2 else author[0] + author.split()[-1][0]).upper()
-    draw.ellipse([avatar_x, avatar_y, avatar_x + avatar_d, avatar_y + avatar_d], fill=card_bg_hi)
+    initials = (
+        author[:2] if len(author) <= 2 else author[0] + author.split()[-1][0]
+    ).upper()
+    draw.ellipse(
+        [avatar_x, avatar_y, avatar_x + avatar_d, avatar_y + avatar_d], fill=card_bg_hi
+    )
     ibbox = draw.textbbox((0, 0), initials, font=f_avatar)
     tw, th = ibbox[2] - ibbox[0], ibbox[3] - ibbox[1]
     draw.text(
         (avatar_x + (avatar_d - tw) / 2, avatar_y + (avatar_d - th) / 2 - ibbox[1]),
-        initials, font=f_avatar, fill=text_bright,
+        initials,
+        font=f_avatar,
+        fill=text_bright,
     )
 
 # ---------- PROJECT & ENVIRONMENT ----------
@@ -274,11 +341,23 @@ draw.text((pad + S(24), y_curr), project, font=f_title, fill=text_bright)
 y_curr += S(48)
 
 env_dot_r = S(5)
-draw.ellipse([pad + S(24), y_curr + S(9), pad + S(24) + env_dot_r * 2, y_curr + S(9) + env_dot_r * 2], fill=accent)
-draw.text((pad + S(24) + env_dot_r * 2 + S(10), y_curr), environment, font=f_sub, fill=accent)
+draw.ellipse(
+    [
+        pad + S(24),
+        y_curr + S(9),
+        pad + S(24) + env_dot_r * 2,
+        y_curr + S(9) + env_dot_r * 2,
+    ],
+    fill=accent,
+)
+draw.text(
+    (pad + S(24) + env_dot_r * 2 + S(10), y_curr), environment, font=f_sub, fill=accent
+)
 y_curr += S(42)
 
-draw.line([pad + S(24), y_curr, W - pad - S(24), y_curr], fill=divider, width=max(1, S(1)))
+draw.line(
+    [pad + S(24), y_curr, W - pad - S(24), y_curr], fill=divider, width=max(1, S(1))
+)
 y_curr += S(26)
 
 # ---------- METADATA ----------
@@ -296,11 +375,18 @@ for label, val, icon_fn in meta_rows:
     icon_fn(draw, pad + S(24), y_curr, S(20), text_muted)
     draw.text((pad + S(58), y_curr + S(1)), label, font=f_label, fill=text_muted)
     display_val = truncate_to_width(draw, val, f_body, value_max_w)
-    draw.text((pad + S(24) + label_col_w, y_curr - S(2)), display_val, font=f_body, fill=text_bright)
+    draw.text(
+        (pad + S(24) + label_col_w, y_curr - S(2)),
+        display_val,
+        font=f_body,
+        fill=text_bright,
+    )
     y_curr += row_h
 
 y_curr += S(10)
-draw.line([pad + S(24), y_curr, W - pad - S(24), y_curr], fill=divider, width=max(1, S(1)))
+draw.line(
+    [pad + S(24), y_curr, W - pad - S(24), y_curr], fill=divider, width=max(1, S(1))
+)
 y_curr += S(26)
 
 
@@ -309,11 +395,20 @@ def draw_job_pill(x, y, w, h, label, result, duration):
     ok = result == "success"
     color = mint if ok else coral if result == "failure" else gray_skip
 
-    draw.rounded_rectangle([x, y, x + w, y + h], radius=S(16), fill=card_bg_hi, outline=card_border, width=max(1, S(1)))
+    draw.rounded_rectangle(
+        [x, y, x + w, y + h],
+        radius=S(16),
+        fill=card_bg_hi,
+        outline=card_border,
+        width=max(1, S(1)),
+    )
 
     circle_d = S(28)
     cx, cy = x + S(32), y + h / 2
-    draw.ellipse([cx - circle_d / 2, cy - circle_d / 2, cx + circle_d / 2, cy + circle_d / 2], fill=color)
+    draw.ellipse(
+        [cx - circle_d / 2, cy - circle_d / 2, cx + circle_d / 2, cy + circle_d / 2],
+        fill=color,
+    )
     if ok:
         draw_check(draw, cx, cy, S(8), card_bg, weight=S(3))
     elif result == "failure":
@@ -331,7 +426,15 @@ pill_gap = S(18)
 pill_h = S(70)
 pill_w = (W - pad * 2 - S(48) - pill_gap) // 2
 draw_job_pill(pad + S(24), y_curr, pill_w, pill_h, "Lint", lint_result, lint_duration)
-draw_job_pill(pad + S(24) + pill_w + pill_gap, y_curr, pill_w, pill_h, "Deploy", deploy_result, deploy_duration)
+draw_job_pill(
+    pad + S(24) + pill_w + pill_gap,
+    y_curr,
+    pill_w,
+    pill_h,
+    "Deploy",
+    deploy_result,
+    deploy_duration,
+)
 
 y_curr += pill_h + S(26)
 
@@ -341,12 +444,16 @@ footer_h = S(36)
 ts_bbox = draw.textbbox((0, 0), timestamp, font=f_footer)
 ts_w = (ts_bbox[2] - ts_bbox[0]) + S(52)
 draw.rounded_rectangle(
-    [pad + S(24), y_curr, pad + S(24) + ts_w, y_curr + footer_h], radius=footer_h // 2, fill=card_bg_hi,
+    [pad + S(24), y_curr, pad + S(24) + ts_w, y_curr + footer_h],
+    radius=footer_h // 2,
+    fill=card_bg_hi,
 )
 draw_clock_icon(draw, pad + S(36), y_curr + S(9), S(17), sky)
 draw.text(
     (pad + S(60), y_curr + (footer_h - (ts_bbox[3] - ts_bbox[1])) / 2 - ts_bbox[1]),
-    timestamp, font=f_footer, fill=text_bright,
+    timestamp,
+    font=f_footer,
+    fill=text_bright,
 )
 
 if total_s is not None:
@@ -354,11 +461,20 @@ if total_s is not None:
     dur_bbox = draw.textbbox((0, 0), dur_str, font=f_footer)
     dur_w = (dur_bbox[2] - dur_bbox[0]) + S(52)
     dur_x = pad + S(24) + ts_w + S(12)
-    draw.rounded_rectangle([dur_x, y_curr, dur_x + dur_w, y_curr + footer_h], radius=footer_h // 2, fill=card_bg_hi)
+    draw.rounded_rectangle(
+        [dur_x, y_curr, dur_x + dur_w, y_curr + footer_h],
+        radius=footer_h // 2,
+        fill=card_bg_hi,
+    )
     draw_bolt_icon(draw, dur_x + S(13), y_curr + S(9), S(17), sun)
     draw.text(
-        (dur_x + S(38), y_curr + (footer_h - (dur_bbox[3] - dur_bbox[1])) / 2 - dur_bbox[1]),
-        dur_str, font=f_footer, fill=text_bright,
+        (
+            dur_x + S(38),
+            y_curr + (footer_h - (dur_bbox[3] - dur_bbox[1])) / 2 - dur_bbox[1],
+        ),
+        dur_str,
+        font=f_footer,
+        fill=text_bright,
     )
 
 # ---------- DOWNSAMPLE FOR CRISP FINAL OUTPUT AT REQUESTED 2x RESOLUTION ----------
