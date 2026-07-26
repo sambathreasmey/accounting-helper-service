@@ -3,10 +3,9 @@ import uuid
 
 from app.core.config import settings
 from app.db.crud import get_po
-from app.services.edit_state import set_pending_supplier
 from app.db.database import async_session_maker
 from app.db.models import POStatus
-from app.services.edit_state import set_pending_edit
+from app.services.edit_state import set_pending_edit, set_pending_supplier
 from app.services.po_dispatch import dispatch_po_generation
 from app.services.telegram_client import telegram_client
 
