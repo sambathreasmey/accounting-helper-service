@@ -131,20 +131,16 @@ async def create_po(
 ) -> PurchaseOrder:
     supplier_name_value = " ".join((supplier_name or "").split()).strip()
 
-    supplier = None
-    supplier_name_text = None
     supplier_id = None
     if supplier_name_value:
         supplier = await create_supplier(
             session, chat_id=chat_id, name=supplier_name_value
         )
-        supplier_name_text = supplier.name
         supplier_id = supplier.id
 
     po = PurchaseOrder(
         chat_id=chat_id,
         po_id=(po_id or "PENDING").strip() or "PENDING",
-        supplier_name_text=supplier_name_text,
         supplier_id=supplier_id,
         items=items,
         source=source,
@@ -165,8 +161,9 @@ async def build_po_id_for_supplier(
     normalized_name = " ".join((supplier_name or "").split()).strip().lower()
     query = (
         select(func.count(PurchaseOrder.id))
+        .join(Supplier, PurchaseOrder.supplier_id == Supplier.id)
         .where(PurchaseOrder.chat_id == chat_id)
-        .where(func.lower(PurchaseOrder.supplier_name_text) == normalized_name)
+        .where(func.lower(Supplier.name) == normalized_name)
     )
     count = (await session.execute(query)).scalar_one()
     return f"PO-{count + 1:05d}"
@@ -181,7 +178,6 @@ async def finalize_po(
     po_id: str,
 ) -> PurchaseOrder:
     supplier = await create_supplier(session, chat_id=chat_id, name=supplier_name)
-    po.supplier_name_text = supplier.name
     po.supplier_id = supplier.id
     po.po_id = po_id
     await session.commit()

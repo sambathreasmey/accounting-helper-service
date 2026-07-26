@@ -97,6 +97,13 @@ class PurchaseOrder(Base):
     chat_id: Mapped[int] = mapped_column(BigInteger, index=True, nullable=False)
 
     po_id: Mapped[str] = mapped_column(Text, index=True, nullable=False)
+
+    # NOTE: legacy denormalized column, kept only so existing rows created
+    # before the supplier relationship existed still resolve a name via the
+    # fallback in `supplier_name` below. No code path writes to this anymore.
+    # Safe to drop once historical data has been backfilled with supplier_id,
+    # at which point this mapped_column AND the fallback line in the
+    # `supplier_name` property must be removed together.
     supplier_name_text: Mapped[str | None] = mapped_column(
         "supplier_name", Text, nullable=True, index=True
     )
@@ -140,14 +147,13 @@ class PurchaseOrder(Base):
 
     @property
     def supplier_name(self) -> str:
-        supplier_name_value = getattr(self, "supplier_name_text", None)
-        if supplier_name_value:
-            return supplier_name_value
-
+        # Always prefer the live relationship so edits to a supplier's name
+        # show up immediately on every PO that references it.
         supplier_obj = self.__dict__.get("supplier")
         if isinstance(supplier_obj, Supplier):
             return supplier_obj.name
-        return ""
+        # Fallback only for legacy rows with no supplier_id link.
+        return self.supplier_name_text or ""
 
     def to_dict(self) -> dict:
         created_at = self.created_at
