@@ -108,6 +108,15 @@ async def delete_supplier(session: AsyncSession, supplier: Supplier) -> None:
     await session.commit()
 
 
+async def update_supplier(
+    session: AsyncSession, supplier: Supplier, *, name: str
+) -> Supplier:
+    supplier.name = name.strip()
+    await session.commit()
+    await session.refresh(supplier)
+    return supplier
+
+
 async def create_po(
     session: AsyncSession,
     *,

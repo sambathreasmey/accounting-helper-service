@@ -19,6 +19,10 @@ class SupplierCreateRequest(BaseModel):
     name: str = Field(min_length=1)
 
 
+class SupplierUpdateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+
+
 class POCallbackRequest(BaseModel):
     """Body GitHub Actions sends back once a PO document is generated."""
 

@@ -11,15 +11,22 @@ from app.db.crud import (
     create_supplier,
     dashboard_stats,
     delete_po,
+    delete_supplier,
     get_po,
+    get_supplier,
     get_user_profile,
     list_pos,
     list_suppliers,
     set_status,
+    update_supplier,
 )
 from app.db.database import get_session
 from app.db.models import POSource, POStatus
-from app.schemas.po import RegeneratePORequest, SupplierCreateRequest
+from app.schemas.po import (
+    RegeneratePORequest,
+    SupplierCreateRequest,
+    SupplierUpdateRequest,
+)
 from app.services.github_client import GitHubDispatchError, trigger_po_generate_workflow
 from app.services.redis_client import cache_get, cache_invalidate_chat, cache_set
 
@@ -96,6 +103,36 @@ async def create_supplier_entry(
     supplier = await create_supplier(session, chat_id=chat_id, name=body.name)
     await cache_invalidate_chat(chat_id)
     return supplier.to_dict()
+
+
+@router.patch("/suppliers/{supplier_id}")
+async def update_supplier_entry(
+    supplier_id: uuid.UUID,
+    body: SupplierUpdateRequest,
+    session: SessionDep,
+    chat_id: int = Depends(get_chat_id),
+):
+    supplier = await get_supplier(session, supplier_id)
+    if supplier is None or supplier.chat_id != chat_id:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    supplier = await update_supplier(session, supplier, name=body.name)
+    await cache_invalidate_chat(chat_id)
+    return supplier.to_dict()
+
+
+@router.delete("/suppliers/{supplier_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_supplier_entry(
+    supplier_id: uuid.UUID,
+    session: SessionDep,
+    chat_id: int = Depends(get_chat_id),
+):
+    supplier = await get_supplier(session, supplier_id)
+    if supplier is None or supplier.chat_id != chat_id:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    await delete_supplier(session, supplier)
+    await cache_invalidate_chat(chat_id)
 
 
 @router.get("/dashboard")
