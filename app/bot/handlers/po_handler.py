@@ -1,9 +1,9 @@
 import logging
 
+from app.bot.keyboards.po_keyboard import forward_message
 from app.bot.parsers.po_parser import POParseError, parse_po_message
 from app.db.crud import create_po
 from app.db.database import async_session_maker
-from app.bot.keyboards.po_keyboard import forward_message
 from app.services.telegram_client import telegram_client
 
 logger = logging.getLogger("bot.po_handler")
