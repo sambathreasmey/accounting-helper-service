@@ -8,16 +8,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import InvalidToken, decode_token
 from app.db.crud import (
     create_po,
+    create_supplier,
     dashboard_stats,
     delete_po,
     get_po,
     get_user_profile,
     list_pos,
+    list_suppliers,
     set_status,
 )
 from app.db.database import get_session
 from app.db.models import POSource, POStatus
-from app.schemas.po import RegeneratePORequest
+from app.schemas.po import RegeneratePORequest, SupplierCreateRequest
 from app.services.github_client import GitHubDispatchError, trigger_po_generate_workflow
 from app.services.redis_client import cache_get, cache_invalidate_chat, cache_set
 
@@ -62,6 +64,38 @@ async def get_me(
         }
 
     return user.to_dict()
+
+
+@router.get("/suppliers")
+async def get_suppliers(
+    session: SessionDep,
+    chat_id: int = Depends(get_chat_id),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+):
+    rows, total = await list_suppliers(
+        session,
+        chat_id=chat_id,
+        limit=page_size,
+        offset=(page - 1) * page_size,
+    )
+    return {
+        "items": [supplier.to_dict() for supplier in rows],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
+
+
+@router.post("/suppliers", status_code=status.HTTP_201_CREATED)
+async def create_supplier_entry(
+    body: SupplierCreateRequest,
+    session: SessionDep,
+    chat_id: int = Depends(get_chat_id),
+):
+    supplier = await create_supplier(session, chat_id=chat_id, name=body.name)
+    await cache_invalidate_chat(chat_id)
+    return supplier.to_dict()
 
 
 @router.get("/dashboard")

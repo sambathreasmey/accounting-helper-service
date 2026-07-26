@@ -37,6 +37,11 @@ const STRINGS = {
     po_id_label: "PO ID",
     supplier_label: "Supplier",
     supplier_placeholder: "Supplier name",
+    supplier_manage: "Saved suppliers",
+    supplier_add: "Save supplier",
+    supplier_saved: "Supplier saved ✅",
+    supplier_selected: "Supplier selected",
+    supplier_empty: "No suppliers saved yet",
     col_item: "Item",
     col_qty: "Qty",
     col_unit: "Unit",
@@ -78,6 +83,11 @@ const STRINGS = {
     po_id_label: "លេខបញ្ជាទិញ",
     supplier_label: "អ្នកផ្គត់ផ្គង់",
     supplier_placeholder: "ឈ្មោះអ្នកផ្គត់ផ្គង់",
+    supplier_manage: "អ្នកផ្គត់ផ្គង់ដែលបានរក្សាទុក",
+    supplier_add: "រក្សាទុក",
+    supplier_saved: "បានរក្សាទុករួច ✅",
+    supplier_selected: "បានជ្រើសអ្នកផ្គត់ផ្គង់",
+    supplier_empty: "មិនទាន់មានអ្នកផ្គត់ផ្គង់ដែលបានរក្សាទុកទេ",
     col_item: "ទំនិញ",
     col_qty: "បរិមាណ",
     col_unit: "ឯកតា",
@@ -563,6 +573,11 @@ function renderDetail(po) {
         <input id="edit-po-id" value="${escapeAttr(po.po_id)}" placeholder="${t("po_id_label")}" />
         <input id="edit-supplier" value="${escapeAttr(po.supplier_name)}" placeholder="${t("supplier_placeholder")}" />
       </div>
+      <div class="actions" style="margin-top:8px;">
+        <button class="btn btn-secondary" id="save-supplier-btn">${t("supplier_add")}</button>
+      </div>
+      <div class="detail-sub" style="margin-top:10px;">${t("supplier_manage")}</div>
+      <div id="supplier-list" class="po-list" style="margin-top:8px;"></div>
     `
         : ""
     }
@@ -595,10 +610,65 @@ function renderDetail(po) {
       editor.insertAdjacentHTML("beforeend", itemRow({ name: "", qty: 1, packing: "", price: 0 }));
     };
     document.getElementById("regenerate-btn").onclick = submitRegenerate;
+    document.getElementById("save-supplier-btn").onclick = submitSaveSupplier;
+    void loadSupplierList();
   }
   document.getElementById("delete-po-btn").onclick = submitDeleteFromSheet;
 
   document.getElementById("detail-sheet").classList.remove("hidden");
+}
+
+async function loadSupplierList() {
+  const container = document.getElementById("supplier-list");
+  if (!container) return;
+  container.innerHTML = '<div class="skeleton skeleton-card" style="margin-bottom:8px;"></div>';
+
+  try {
+    const data = await api("/api/webapp/suppliers?page=1&page_size=10");
+    if (!data.items.length) {
+      container.innerHTML = `<div class="empty-state"><span class="empty-icon">🏷️</span>${t("supplier_empty")}</div>`;
+      return;
+    }
+
+    container.innerHTML = data.items
+      .map((supplier) => `
+        <button class="chip supplier-chip" data-name="${escapeAttr(supplier.name)}" style="margin:4px 6px 4px 0;">${escapeHtml(supplier.name)}</button>
+      `)
+      .join("");
+
+    container.querySelectorAll(".supplier-chip").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const supplierName = btn.dataset.name;
+        const input = document.getElementById("edit-supplier");
+        if (input) {
+          input.value = supplierName;
+          toast(t("supplier_selected"));
+        }
+      });
+    });
+  } catch (e) {
+    container.innerHTML = `<div class="empty-state"><span class="empty-icon">⚠️</span>${escapeHtml(e.message)}</div>`;
+  }
+}
+
+async function submitSaveSupplier() {
+  const input = document.getElementById("edit-supplier");
+  if (!input) return;
+
+  const name = input.value.trim();
+  if (!name) return;
+
+  try {
+    const supplier = await api("/api/webapp/suppliers", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
+    input.value = supplier.name;
+    toast(t("supplier_saved"));
+    await loadSupplierList();
+  } catch (e) {
+    toast(e.message);
+  }
 }
 
 async function submitDeleteFromSheet() {

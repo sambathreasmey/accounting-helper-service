@@ -3,6 +3,7 @@ import uuid
 
 from app.core.config import settings
 from app.db.crud import get_po
+from app.services.edit_state import set_pending_supplier
 from app.db.database import async_session_maker
 from app.db.models import POStatus
 from app.services.edit_state import set_pending_edit
@@ -23,8 +24,29 @@ async def handle_callback_query(callback_query: dict) -> None:
     message = callback_query["message"]
     chat_id = message["chat"]["id"]
 
+    action = data.split(":", 1)[0]
+    if action not in {
+        "po_confirm",
+        "po_edit",
+        "po_forward",
+        "supplier_select",
+        "supplier_page",
+    }:
+        logger.warning("Malformed callback_data: %r", data)
+        await telegram_client.answer_callback_query(
+            callback_id, text="Invalid action.", show_alert=True
+        )
+        return
+
+    if action in {"supplier_select", "supplier_page"}:
+        if action == "supplier_select":
+            await _handle_supplier_select(callback_id, chat_id, data)
+        else:
+            await _handle_supplier_page(callback_id, chat_id, data)
+        return
+
     try:
-        action, po_id_str = data.split(":", 1)
+        _, po_id_str = data.split(":", 1)
         po_db_id = uuid.UUID(po_id_str)
     except (ValueError, KeyError):
         logger.warning("Malformed callback_data: %r", data)
@@ -47,6 +69,10 @@ async def handle_callback_query(callback_query: dict) -> None:
             await _handle_edit(callback_id, po, chat_id)
         elif action == "po_forward":
             await _handle_forward(callback_id, po, message)
+        elif action == "supplier_select":
+            await _handle_supplier_select(callback_id, chat_id, data)
+        elif action == "supplier_page":
+            await _handle_supplier_page(callback_id, chat_id, data)
         else:
             logger.warning("Unknown callback action: %r", action)
             await telegram_client.answer_callback_query(
@@ -81,6 +107,29 @@ async def _handle_edit(callback_id: str, po, chat_id: int) -> None:
     await telegram_client.answer_callback_query(
         callback_id, text="Reply with the corrected PO text to edit it."
     )
+
+
+async def _handle_supplier_select(callback_id: str, chat_id: int, data: str) -> None:
+    _, supplier_name = data.split(":", 1)
+    set_pending_supplier(chat_id, supplier_name)
+    await telegram_client.answer_callback_query(
+        callback_id,
+        text=f"Supplier set to {supplier_name}. Send your next PO and I’ll use it.",
+    )
+
+
+async def _handle_supplier_page(callback_id: str, chat_id: int, data: str) -> None:
+    _, page_str = data.split(":", 1)
+    try:
+        page = int(page_str)
+    except ValueError:
+        await telegram_client.answer_callback_query(callback_id, text="Invalid page.")
+        return
+
+    from app.bot.handlers.default_handler import _send_supplier_picker
+
+    await _send_supplier_picker(chat_id, page=page)
+    await telegram_client.answer_callback_query(callback_id, text="Loading suppliers…")
 
 
 async def _handle_forward(callback_id: str, po, message: dict) -> None:

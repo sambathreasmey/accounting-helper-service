@@ -22,9 +22,11 @@ def looks_like_po_message(text: str) -> bool:
     return any(line.strip().startswith("-") for line in text.strip().splitlines())
 
 
-async def handle_po_message(chat_id: int, text: str) -> None:
+async def handle_po_message(
+    chat_id: int, text: str, default_supplier_name: str | None = None
+) -> None:
     try:
-        orders = parse_po_message(text)
+        orders = parse_po_message(text, default_supplier_name=default_supplier_name)
     except POParseError as exc:
         await telegram_client.send_message(
             chat_id,
@@ -44,11 +46,12 @@ async def handle_po_message(chat_id: int, text: str) -> None:
 
     async with async_session_maker() as session:
         for order in orders:
+            supplier_name = order.supplier_name.strip() or default_supplier_name or ""
             po_record = await create_po(
                 session,
                 chat_id=chat_id,
                 po_id=order.po_id,
-                supplier_name=order.supplier_name,
+                supplier_name=supplier_name,
                 items=[item.to_dict() for item in order.items],
                 raw_text=text,
             )

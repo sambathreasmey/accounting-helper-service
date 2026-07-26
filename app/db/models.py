@@ -2,9 +2,9 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Enum, Text, func
+from sqlalchemy import BigInteger, Enum, ForeignKey, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
 
@@ -52,6 +52,39 @@ class User(Base):
         }
 
 
+class Supplier(Base):
+    __tablename__ = "suppliers"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    chat_id: Mapped[int] = mapped_column(BigInteger, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint("chat_id", "name", name="uq_supplier_chat_name"),
+    )
+
+    purchase_orders: Mapped[list["PurchaseOrder"]] = relationship(
+        back_populates="supplier"
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": str(self.id),
+            "chat_id": self.chat_id,
+            "name": self.name,
+            "created_at": self.created_at.isoformat(),
+        }
+
+
 class PurchaseOrder(Base):
     __tablename__ = "purchase_orders"
 
@@ -64,8 +97,12 @@ class PurchaseOrder(Base):
     chat_id: Mapped[int] = mapped_column(BigInteger, index=True, nullable=False)
 
     po_id: Mapped[str] = mapped_column(Text, index=True, nullable=False)
-    supplier_name: Mapped[str] = mapped_column(Text, nullable=False)
+    supplier_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("suppliers.id"), nullable=True, index=True
+    )
     items: Mapped[list[dict]] = mapped_column(JSONB, nullable=False, default=list)
+
+    supplier: Mapped["Supplier | None"] = relationship(back_populates="purchase_orders")
 
     status: Mapped[POStatus] = mapped_column(
         Enum(POStatus, name="po_status", native_enum=True),
@@ -96,11 +133,16 @@ class PurchaseOrder(Base):
         server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
+    @property
+    def supplier_name(self) -> str:
+        return self.supplier.name if self.supplier else ""
+
     def to_dict(self) -> dict:
         return {
             "id": str(self.id),
             "chat_id": self.chat_id,
             "po_id": self.po_id,
+            "supplier_id": str(self.supplier_id) if self.supplier_id else None,
             "supplier_name": self.supplier_name,
             "items": self.items,
             "status": self.status.value,

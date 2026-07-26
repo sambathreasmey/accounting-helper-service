@@ -4,6 +4,7 @@ _TTL_SECONDS = 600  # 10 minutes to reply with the correction before it expires
 
 # chat_id -> (po_id, expires_at)
 _pending: dict[int, tuple[str, float]] = {}
+_pending_supplier: dict[int, tuple[str, float]] = {}
 
 
 def set_pending_edit(chat_id: int, po_id: str) -> None:
@@ -23,3 +24,17 @@ def pop_pending_edit(chat_id: int) -> str | None:
     if time.monotonic() > expires_at:
         return None
     return po_id
+
+
+def set_pending_supplier(chat_id: int, supplier_name: str) -> None:
+    _pending_supplier[chat_id] = (supplier_name, time.monotonic() + _TTL_SECONDS)
+
+
+def pop_pending_supplier(chat_id: int) -> str | None:
+    entry = _pending_supplier.pop(chat_id, None)
+    if entry is None:
+        return None
+    supplier_name, expires_at = entry
+    if time.monotonic() > expires_at:
+        return None
+    return supplier_name

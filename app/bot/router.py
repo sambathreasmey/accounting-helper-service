@@ -8,7 +8,7 @@ from app.bot.handlers.forward_handler import (
     is_forwarded_message,
 )
 from app.bot.handlers.po_handler import handle_po_message, looks_like_po_message
-from app.services.edit_state import pop_pending_edit
+from app.services.edit_state import pop_pending_edit, pop_pending_supplier
 
 logger = logging.getLogger("bot.router")
 
@@ -35,10 +35,13 @@ async def handle_update(update: dict) -> None:
             await handle_po_edit_reply(chat_id, pending_po_id, text)
             return
 
+        pending_supplier_name = pop_pending_supplier(chat_id)
         if is_forwarded_message(message):
             await handle_forward_message(chat_id, message)
         elif looks_like_po_message(text):
-            await handle_po_message(chat_id, text)
+            await handle_po_message(
+                chat_id, text, default_supplier_name=pending_supplier_name
+            )
         else:
             await handle_default_message(chat_id, text)
     except Exception:

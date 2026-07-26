@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import POSource, POStatus, PurchaseOrder, User
+from app.db.models import POSource, POStatus, PurchaseOrder, Supplier, User
 
 
 async def upsert_user_profile(
@@ -49,6 +49,65 @@ async def get_user_profile(session: AsyncSession, chat_id: int) -> User | None:
     return result.scalars().first()
 
 
+async def create_supplier(
+    session: AsyncSession,
+    *,
+    chat_id: int,
+    name: str,
+) -> Supplier:
+    normalized_name = " ".join(name.split()).strip()
+    if not normalized_name:
+        raise ValueError("Supplier name cannot be empty")
+
+    query = select(Supplier).where(
+        Supplier.chat_id == chat_id, Supplier.name == normalized_name
+    )
+    result = await session.execute(query)
+    existing = result.scalars().first()
+    if existing:
+        return existing
+
+    supplier = Supplier(chat_id=chat_id, name=normalized_name)
+    session.add(supplier)
+    await session.commit()
+    await session.refresh(supplier)
+    return supplier
+
+
+async def get_supplier(
+    session: AsyncSession, supplier_id: uuid.UUID
+) -> Supplier | None:
+    return await session.get(Supplier, supplier_id)
+
+
+async def list_suppliers(
+    session: AsyncSession,
+    *,
+    chat_id: int,
+    limit: int = 20,
+    offset: int = 0,
+) -> tuple[list[Supplier], int]:
+    query = (
+        select(Supplier)
+        .where(Supplier.chat_id == chat_id)
+        .order_by(Supplier.name.asc())
+        .limit(limit)
+        .offset(offset)
+    )
+    count_query = (
+        select(func.count()).select_from(Supplier).where(Supplier.chat_id == chat_id)
+    )
+
+    total = (await session.execute(count_query)).scalar_one()
+    rows = (await session.execute(query)).scalars().all()
+    return list(rows), total
+
+
+async def delete_supplier(session: AsyncSession, supplier: Supplier) -> None:
+    await session.delete(supplier)
+    await session.commit()
+
+
 async def create_po(
     session: AsyncSession,
     *,
@@ -60,10 +119,11 @@ async def create_po(
     raw_text: str | None = None,
     regenerated_from_id: uuid.UUID | None = None,
 ) -> PurchaseOrder:
+    supplier = await create_supplier(session, chat_id=chat_id, name=supplier_name)
     po = PurchaseOrder(
         chat_id=chat_id,
         po_id=po_id,
-        supplier_name=supplier_name,
+        supplier_id=supplier.id,
         items=items,
         source=source,
         raw_text=raw_text,

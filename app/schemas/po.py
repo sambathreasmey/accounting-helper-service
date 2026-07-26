@@ -15,6 +15,10 @@ class RegeneratePORequest(BaseModel):
     items: list[POItemIn] = Field(min_length=1)
 
 
+class SupplierCreateRequest(BaseModel):
+    name: str = Field(min_length=1)
+
+
 class POCallbackRequest(BaseModel):
     """Body GitHub Actions sends back once a PO document is generated."""
 

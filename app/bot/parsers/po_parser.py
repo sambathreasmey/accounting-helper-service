@@ -85,7 +85,9 @@ def _parse_item_line(line: str, line_no: int) -> POItem:
     )
 
 
-def parse_po_message(text: str) -> list[PurchaseOrder]:
+def parse_po_message(
+    text: str, default_supplier_name: str | None = None
+) -> list[PurchaseOrder]:
     """
     Parses one or more purchase orders from a message like:
 
@@ -116,15 +118,21 @@ def parse_po_message(text: str) -> list[PurchaseOrder]:
             continue
 
         header_match = HEADER_PATTERN.match(line)
-        if not header_match:
+        if header_match:
+            supplier_name = header_match.group("supplier").strip()
+            po_id = header_match.group("po_id").upper()
+        elif default_supplier_name and re.match(r"^[A-Za-z0-9][A-Za-z0-9\-_/]*$", line):
+            supplier_name = default_supplier_name.strip()
+            po_id = line.upper()
+        else:
             raise POParseError(
                 f"Line {line_no}: expected 'Supplier Name PO-ID' (e.g. 'Thai Hout PO-00001' "
                 f"or 'Sand bakery 07'), got '{line}'"
             )
 
         current = PurchaseOrder(
-            supplier_name=header_match.group("supplier").strip(),
-            po_id=header_match.group("po_id").upper(),
+            supplier_name=supplier_name,
+            po_id=po_id,
         )
         orders.append(current)
 
