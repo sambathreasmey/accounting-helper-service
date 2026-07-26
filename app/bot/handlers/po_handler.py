@@ -23,12 +23,16 @@ async def handle_po_message(
     chat_id: int, text: str, default_supplier_name: str | None = None
 ) -> None:
     try:
-        orders = parse_po_message(text, default_supplier_name=default_supplier_name)
+        orders = parse_po_message(
+            text,
+            default_supplier_name=default_supplier_name,
+            allow_item_only=True,
+        )
     except POParseError as exc:
         await telegram_client.send_message(
             chat_id,
             f"⚠️ Couldn't read that purchase order:\n{exc}\n\n"
-            "Format:\n<Supplier Name> <PO-ID>\n- <Description> <Qty><Unit> <Price>$",
+            "Send the items as a list like:\n- <Description> <Qty><Unit> <Price>$",
         )
         return
 
