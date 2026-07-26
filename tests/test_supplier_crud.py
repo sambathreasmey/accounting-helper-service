@@ -1,9 +1,7 @@
 import pytest
-
 from sqlalchemy.dialects.sqlite.base import SQLiteTypeCompiler
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-
 
 if not hasattr(SQLiteTypeCompiler, "visit_JSONB"):
 
