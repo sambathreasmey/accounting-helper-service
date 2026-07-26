@@ -1,7 +1,6 @@
 import logging
 
 from app.bot.parsers.po_parser import POParseError, parse_po_message
-from app.core.config import settings
 from app.db.crud import create_po
 from app.db.database import async_session_maker
 from app.bot.keyboards.po_keyboard import forward_message
@@ -46,6 +45,6 @@ async def handle_po_message(
             )
             await telegram_client.send_message(
                 chat_id,
-                f"✅ Drafted purchase order. Tap Confirm to choose a supplier and finish it.",
+                "✅ Drafted purchase order. Tap Confirm to choose a supplier and finish it.",
                 reply_markup=forward_message(str(po_record.id), text),
             )
