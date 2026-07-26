@@ -1,7 +1,26 @@
+import importlib
+import os
+
 import pytest
 from sqlalchemy.dialects.sqlite.base import SQLiteTypeCompiler
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
+
+os.environ.setdefault("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
+os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
+os.environ.setdefault("TELEGRAM_BOT_TOKEN", "token")
+os.environ.setdefault("TELEGRAM_WEBHOOK_SECRET", "secret")
+os.environ.setdefault("PUBLIC_BASE_URL", "https://example.test")
+os.environ.setdefault("GITHUB_TOKEN", "token")
+os.environ.setdefault("PO_CALLBACK_SECRET", "secret")
+os.environ.setdefault("JWT_SECRET", "secret")
+os.environ.setdefault("ALERT_CHAT_ID", "0")
+
+import app.core.config as config_module
+
+importlib.reload(config_module)
+
+from app.db.models import POSource, POStatus, PurchaseOrder
 
 if not hasattr(SQLiteTypeCompiler, "visit_JSONB"):
 
@@ -9,6 +28,21 @@ if not hasattr(SQLiteTypeCompiler, "visit_JSONB"):
         return self.visit_JSON(type_, **kw)
 
     SQLiteTypeCompiler.visit_JSONB = _visit_jsonb
+
+
+def test_purchase_order_to_dict_uses_stored_supplier_name():
+    po = PurchaseOrder(
+        chat_id=123,
+        po_id="PO-100",
+        supplier_name_text="Thai Hout",
+        items=[{"name": "Pens", "qty": 2, "price": 10.0}],
+        status=POStatus.PENDING,
+        source=POSource.TELEGRAM,
+    )
+
+    payload = po.to_dict()
+
+    assert payload["supplier_name"] == "Thai Hout"
 
 
 @pytest.mark.asyncio
@@ -22,12 +56,6 @@ async def test_create_and_list_suppliers_for_chat(monkeypatch):
     monkeypatch.setenv("PO_CALLBACK_SECRET", "secret")
     monkeypatch.setenv("JWT_SECRET", "secret")
     monkeypatch.setenv("ALERT_CHAT_ID", "0")
-
-    import importlib
-
-    import app.core.config as config_module
-
-    importlib.reload(config_module)
 
     from app.db.crud import create_po, create_supplier, list_suppliers
     from app.db.database import Base

@@ -123,6 +123,7 @@ async def create_po(
     po = PurchaseOrder(
         chat_id=chat_id,
         po_id=po_id,
+        supplier_name_text=supplier.name,
         supplier_id=supplier.id,
         items=items,
         source=source,

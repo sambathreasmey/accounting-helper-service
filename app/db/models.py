@@ -97,12 +97,17 @@ class PurchaseOrder(Base):
     chat_id: Mapped[int] = mapped_column(BigInteger, index=True, nullable=False)
 
     po_id: Mapped[str] = mapped_column(Text, index=True, nullable=False)
+    supplier_name_text: Mapped[str | None] = mapped_column(
+        "supplier_name", Text, nullable=True, index=True
+    )
     supplier_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("suppliers.id"), nullable=True, index=True
     )
     items: Mapped[list[dict]] = mapped_column(JSONB, nullable=False, default=list)
 
-    supplier: Mapped["Supplier | None"] = relationship(back_populates="purchase_orders")
+    supplier: Mapped["Supplier | None"] = relationship(
+        back_populates="purchase_orders", lazy="selectin"
+    )
 
     status: Mapped[POStatus] = mapped_column(
         Enum(POStatus, name="po_status", native_enum=True),
@@ -135,9 +140,21 @@ class PurchaseOrder(Base):
 
     @property
     def supplier_name(self) -> str:
-        return self.supplier.name if self.supplier else ""
+        supplier_name_value = getattr(self, "supplier_name_text", None)
+        if supplier_name_value:
+            return supplier_name_value
+
+        supplier_obj = self.__dict__.get("supplier")
+        if isinstance(supplier_obj, Supplier):
+            return supplier_obj.name
+        return ""
 
     def to_dict(self) -> dict:
+        created_at = self.created_at
+        updated_at = self.updated_at
+        status_value = self.status.value if self.status else None
+        source_value = self.source.value if self.source else None
+
         return {
             "id": str(self.id),
             "chat_id": self.chat_id,
@@ -145,10 +162,10 @@ class PurchaseOrder(Base):
             "supplier_id": str(self.supplier_id) if self.supplier_id else None,
             "supplier_name": self.supplier_name,
             "items": self.items,
-            "status": self.status.value,
-            "source": self.source.value,
+            "status": status_value,
+            "source": source_value,
             "error_message": self.error_message,
             "file_url": self.file_url,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+            "created_at": created_at.isoformat() if created_at else None,
+            "updated_at": updated_at.isoformat() if updated_at else None,
         }

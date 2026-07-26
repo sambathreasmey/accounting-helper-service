@@ -1,5 +1,6 @@
 from collections.abc import AsyncGenerator
 
+from sqlalchemy import inspect, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -35,6 +36,44 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
+async def ensure_schema_columns() -> None:
+    """Backfill missing columns on existing databases without forcing a full reset."""
+
+    async with engine.begin() as conn:
+        await conn.run_sync(_ensure_schema_columns)
+
+
+def _ensure_schema_columns(conn) -> None:
+    inspector = inspect(conn)
+    if not inspector.has_table("purchase_orders"):
+        return
+
+    purchase_orders_columns = {
+        column["name"] for column in inspector.get_columns("purchase_orders")
+    }
+    if "supplier_name" not in purchase_orders_columns:
+        conn.execute(
+            text(
+                "ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS supplier_name TEXT"
+            )
+        )
+
+    if "supplier_id" not in purchase_orders_columns:
+        conn.execute(
+            text(
+                "ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS supplier_id UUID"
+            )
+        )
+
+    conn.execute(
+        text(
+            "UPDATE purchase_orders "
+            "SET supplier_name = (SELECT name FROM suppliers WHERE suppliers.id = purchase_orders.supplier_id) "
+            "WHERE supplier_name IS NULL AND supplier_id IS NOT NULL"
+        )
+    )
+
+
 async def init_models() -> None:
     """Create tables on startup if they don't exist yet.
 
@@ -43,6 +82,8 @@ async def init_models() -> None:
     """
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    await ensure_schema_columns()
 
 
 async def dispose_engine() -> None:
