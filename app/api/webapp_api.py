@@ -155,6 +155,7 @@ async def get_history(
     session: SessionDep,
     chat_id: int = Depends(get_chat_id),
     status_filter: str | None = Query(default=None, alias="status"),
+    supplier: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
 ):
@@ -165,7 +166,12 @@ async def get_history(
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid status filter")
 
-    cache_key = f"webapp:{chat_id}:history:{status_filter or 'all'}:{page}:{page_size}"
+    supplier_filter = (supplier or "").strip() or None
+
+    cache_key = (
+        f"webapp:{chat_id}:history:{status_filter or 'all'}:"
+        f"{supplier_filter or 'all'}:{page}:{page_size}"
+    )
     cached = await cache_get(cache_key)
     if cached is not None:
         return cached
@@ -174,6 +180,7 @@ async def get_history(
         session,
         chat_id=chat_id,
         status=status_enum,
+        supplier_name=supplier_filter,
         limit=page_size,
         offset=(page - 1) * page_size,
     )

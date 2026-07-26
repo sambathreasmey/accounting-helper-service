@@ -220,6 +220,7 @@ async def list_pos(
     *,
     chat_id: int,
     status: POStatus | None = None,
+    supplier_name: str | None = None,
     limit: int = 20,
     offset: int = 0,
 ) -> tuple[list[PurchaseOrder], int]:
@@ -233,6 +234,15 @@ async def list_pos(
     if status is not None:
         query = query.where(PurchaseOrder.status == status)
         count_query = count_query.where(PurchaseOrder.status == status)
+
+    if supplier_name:
+        normalized = " ".join(supplier_name.split()).strip().lower()
+        query = query.join(Supplier, PurchaseOrder.supplier_id == Supplier.id).where(
+            func.lower(Supplier.name).contains(normalized)
+        )
+        count_query = count_query.join(
+            Supplier, PurchaseOrder.supplier_id == Supplier.id
+        ).where(func.lower(Supplier.name).contains(normalized))
 
     query = query.order_by(PurchaseOrder.created_at.desc()).limit(limit).offset(offset)
 
