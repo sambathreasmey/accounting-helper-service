@@ -69,7 +69,7 @@ async def create_supplier(
 
     supplier = Supplier(chat_id=chat_id, name=normalized_name)
     session.add(supplier)
-    await session.commit()
+    await session.flush()
     await session.refresh(supplier)
     return supplier
 
@@ -131,8 +131,9 @@ async def create_po(
         status=POStatus.PENDING,
     )
     session.add(po)
-    await session.commit()
+    await session.flush()
     await session.refresh(po)
+    await session.commit()
     return po
 
 
