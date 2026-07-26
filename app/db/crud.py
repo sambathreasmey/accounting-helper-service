@@ -112,19 +112,30 @@ async def create_po(
     session: AsyncSession,
     *,
     chat_id: int,
-    po_id: str,
-    supplier_name: str,
+    po_id: str | None = None,
+    supplier_name: str | None = None,
     items: list[dict],
     source: POSource = POSource.TELEGRAM,
     raw_text: str | None = None,
     regenerated_from_id: uuid.UUID | None = None,
 ) -> PurchaseOrder:
-    supplier = await create_supplier(session, chat_id=chat_id, name=supplier_name)
+    supplier_name_value = " ".join((supplier_name or "").split()).strip()
+
+    supplier = None
+    supplier_name_text = None
+    supplier_id = None
+    if supplier_name_value:
+        supplier = await create_supplier(
+            session, chat_id=chat_id, name=supplier_name_value
+        )
+        supplier_name_text = supplier.name
+        supplier_id = supplier.id
+
     po = PurchaseOrder(
         chat_id=chat_id,
-        po_id=po_id,
-        supplier_name_text=supplier.name,
-        supplier_id=supplier.id,
+        po_id=(po_id or "PENDING").strip() or "PENDING",
+        supplier_name_text=supplier_name_text,
+        supplier_id=supplier_id,
         items=items,
         source=source,
         raw_text=raw_text,
@@ -135,6 +146,36 @@ async def create_po(
     await session.flush()
     await session.refresh(po)
     await session.commit()
+    return po
+
+
+async def build_po_id_for_supplier(
+    session: AsyncSession, *, chat_id: int, supplier_name: str
+) -> str:
+    normalized_name = " ".join((supplier_name or "").split()).strip().lower()
+    query = (
+        select(func.count(PurchaseOrder.id))
+        .where(PurchaseOrder.chat_id == chat_id)
+        .where(func.lower(PurchaseOrder.supplier_name_text) == normalized_name)
+    )
+    count = (await session.execute(query)).scalar_one()
+    return f"PO-{count + 1:05d}"
+
+
+async def finalize_po(
+    session: AsyncSession,
+    po: PurchaseOrder,
+    *,
+    chat_id: int,
+    supplier_name: str,
+    po_id: str,
+) -> PurchaseOrder:
+    supplier = await create_supplier(session, chat_id=chat_id, name=supplier_name)
+    po.supplier_name_text = supplier.name
+    po.supplier_id = supplier.id
+    po.po_id = po_id
+    await session.commit()
+    await session.refresh(po)
     return po
 
 

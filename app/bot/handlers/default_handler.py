@@ -21,7 +21,9 @@ def _webapp_kwargs() -> dict:
     }
 
 
-async def _send_supplier_picker(chat_id: int, page: int = 1) -> None:
+async def _send_supplier_picker(
+    chat_id: int, page: int = 1, po_db_id: str | None = None
+) -> None:
     async with async_session_maker() as session:
         suppliers, total = await list_suppliers(
             session, chat_id=chat_id, limit=6, offset=(page - 1) * 6
@@ -40,16 +42,38 @@ async def _send_supplier_picker(chat_id: int, page: int = 1) -> None:
             [
                 {
                     "text": supplier.name,
-                    "callback_data": f"supplier_select:{supplier.name}",
+                    "callback_data": (
+                        f"supplier_select:{supplier.name}:{po_db_id}"
+                        if po_db_id
+                        else f"supplier_select:{supplier.name}"
+                    ),
                 }
             ]
         )
 
     nav_row = []
     if page > 1:
-        nav_row.append({"text": "◀️ Prev", "callback_data": f"supplier_page:{page - 1}"})
+        nav_row.append(
+            {
+                "text": "◀️ Prev",
+                "callback_data": (
+                    f"supplier_page:{page - 1}:{po_db_id}"
+                    if po_db_id
+                    else f"supplier_page:{page - 1}"
+                ),
+            }
+        )
     if (page * 6) < total:
-        nav_row.append({"text": "Next ▶️", "callback_data": f"supplier_page:{page + 1}"})
+        nav_row.append(
+            {
+                "text": "Next ▶️",
+                "callback_data": (
+                    f"supplier_page:{page + 1}:{po_db_id}"
+                    if po_db_id
+                    else f"supplier_page:{page + 1}"
+                ),
+            }
+        )
     if nav_row:
         keyboard.append(nav_row)
 

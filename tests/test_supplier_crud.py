@@ -6,6 +6,8 @@ from sqlalchemy.dialects.sqlite.base import SQLiteTypeCompiler
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
+from app.bot.parsers.po_parser import parse_po_message
+
 os.environ.setdefault("DATABASE_URL", "postgresql://user:pass@localhost:5432/test")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "token")
@@ -28,6 +30,15 @@ if not hasattr(SQLiteTypeCompiler, "visit_JSONB"):
         return self.visit_JSON(type_, **kw)
 
     SQLiteTypeCompiler.visit_JSONB = _visit_jsonb
+
+
+def test_parse_po_message_allows_item_only_payloads():
+    orders = parse_po_message("- Pens 2 10$\n- Paper 3 5$", allow_item_only=True)
+
+    assert len(orders) == 1
+    assert orders[0].supplier_name == ""
+    assert orders[0].po_id == ""
+    assert [item.description for item in orders[0].items] == ["Pens", "Paper"]
 
 
 def test_purchase_order_to_dict_uses_stored_supplier_name():

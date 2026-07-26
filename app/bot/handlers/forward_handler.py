@@ -6,7 +6,6 @@ from app.db.crud import create_po
 from app.db.database import async_session_maker
 from app.services.llm_client import call_llama
 from app.services.telegram_client import telegram_client
-from app.utils.otp import generate_otp
 
 logger = logging.getLogger("bot.forward_handler")
 
@@ -30,15 +29,15 @@ def is_forwarded_message(message: dict) -> bool:
     )
 
 
-def generate_clean_po(supplier_name: str, invoice_id: str, raw_items: str) -> str:
+def generate_clean_po(raw_items: str) -> str:
     """
-    Formats the PO with a clean header (no brackets) and a bulleted list,
-    ensuring the price is always at the end of the line and formatted as amount$.
+    Formats forwarded PO text into a clean item list without requiring a supplier
+    or PO ID to be present in the LLM output.
     """
     system_message = (
         "You are a strict data entry assistant. "
         "Output the raw items into a structured list based on these rules:\n\n"
-        f"1. HEADER RULE: Write the header exactly as '{supplier_name} {invoice_id}' (NO BRACKETS).\n"
+        "1. DO NOT include any supplier name or purchase order ID.\n"
         "2. FORMAT RULE: Every single item must follow this exact structure: '- [Item Name] [Quantity] [Price]'.\n"
         "3. ORDERING RULE: The Price MUST ALWAYS be at the very end of the line. If the raw text has the price "
         "before the quantity, you MUST rearrange the words.\n"
@@ -53,8 +52,7 @@ def generate_clean_po(supplier_name: str, invoice_id: str, raw_items: str) -> st
         "that order.\n"
         "7. PRESERVATION: Keep original spelling and units for everything else, just fix the order, currency "
         "format, and line separation.\n"
-        "8. OUTPUT ONLY: Output the header line followed by the item lines and nothing else -- no preamble, "
-        "no explanation, no closing remarks, no markdown code fences."
+        "8. OUTPUT ONLY: Output only the item lines and nothing else -- no preamble, no explanation, no closing remarks, no markdown code fences."
     )
     return call_llama(
         user_prompt=raw_items, system_prompt=system_message, temperature=0.1
@@ -77,19 +75,15 @@ async def handle_forward_message(chat_id: int, message: dict) -> None:
         )
         return
 
-    supplier_name = DEFAULT_SUPPLIER_NAME
-    invoice_id = generate_otp()
-
-    po_data = generate_clean_po(supplier_name, invoice_id, text)
+    po_data = generate_clean_po(text)
 
     try:
-        orders = parse_po_message(po_data)
+        orders = parse_po_message(po_data, allow_item_only=True)
     except POParseError:
         logger.error(
-            "LLM-generated PO text failed to parse for chat_id=%s invoice_id=%s.\n"
+            "LLM-generated PO text failed to parse for chat_id=%s.\n"
             "--- LLM output start ---\n%s\n--- LLM output end ---",
             chat_id,
-            invoice_id,
             po_data,
         )
         await telegram_client.send_message(
@@ -108,8 +102,8 @@ async def handle_forward_message(chat_id: int, message: dict) -> None:
         po_record = await create_po(
             session,
             chat_id=chat_id,
-            po_id=invoice_id,
-            supplier_name=supplier_name,
+            po_id="",
+            supplier_name="",
             items=items,
             raw_text=text,
         )

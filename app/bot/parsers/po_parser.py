@@ -86,7 +86,9 @@ def _parse_item_line(line: str, line_no: int) -> POItem:
 
 
 def parse_po_message(
-    text: str, default_supplier_name: str | None = None
+    text: str,
+    default_supplier_name: str | None = None,
+    allow_item_only: bool = False,
 ) -> list[PurchaseOrder]:
     """
     Parses one or more purchase orders from a message like:
@@ -111,9 +113,13 @@ def parse_po_message(
 
         if line.startswith("-"):
             if current is None:
-                raise POParseError(
-                    f"Line {line_no}: found an item before any 'Supplier PO-ID' header."
-                )
+                if allow_item_only:
+                    current = PurchaseOrder(supplier_name="", po_id="")
+                    orders.append(current)
+                else:
+                    raise POParseError(
+                        f"Line {line_no}: found an item before any 'Supplier PO-ID' header."
+                    )
             current.items.append(_parse_item_line(line, line_no))
             continue
 

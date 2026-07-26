@@ -2,7 +2,7 @@ import logging
 import uuid
 
 from app.core.config import settings
-from app.db.crud import get_po
+from app.db.crud import build_po_id_for_supplier, finalize_po, get_po
 from app.db.database import async_session_maker
 from app.db.models import POStatus
 from app.services.edit_state import set_pending_edit, set_pending_supplier
@@ -86,14 +86,11 @@ async def _handle_confirm(callback_id: str, session, po, chat_id: int) -> None:
         )
         return
 
-    await telegram_client.answer_callback_query(
-        callback_id, text="Dispatching PO generation…"
-    )
+    await telegram_client.answer_callback_query(callback_id, text="Choose a supplier…")
 
-    data_payload = [
-        {"supplier_name": po.supplier_name, "po_id": po.po_id, "items": po.items}
-    ]
-    await dispatch_po_generation(session, po.id, chat_id, po.po_id, data_payload)
+    from app.bot.handlers.default_handler import _send_supplier_picker
+
+    await _send_supplier_picker(chat_id, page=1, po_db_id=str(po.id))
 
 
 async def _handle_edit(callback_id: str, po, chat_id: int) -> None:
@@ -109,7 +106,59 @@ async def _handle_edit(callback_id: str, po, chat_id: int) -> None:
 
 
 async def _handle_supplier_select(callback_id: str, chat_id: int, data: str) -> None:
-    _, supplier_name = data.split(":", 1)
+    parts = data.split(":", 2)
+    if len(parts) >= 2:
+        _, supplier_name = parts[0], parts[1]
+    else:
+        await telegram_client.answer_callback_query(
+            callback_id, text="Invalid supplier selection."
+        )
+        return
+
+    if len(parts) == 3:
+        po_id_str = parts[2]
+        try:
+            po_db_id = uuid.UUID(po_id_str)
+        except ValueError:
+            await telegram_client.answer_callback_query(
+                callback_id, text="Invalid PO reference."
+            )
+            return
+
+        async with async_session_maker() as session:
+            po = await get_po(session, po_db_id)
+            if po is None:
+                await telegram_client.answer_callback_query(
+                    callback_id, text="PO not found."
+                )
+                return
+
+            po_code = await build_po_id_for_supplier(
+                session, chat_id=chat_id, supplier_name=supplier_name
+            )
+            po = await finalize_po(
+                session,
+                po,
+                chat_id=chat_id,
+                supplier_name=supplier_name,
+                po_id=po_code,
+            )
+            data_payload = [
+                {
+                    "supplier_name": po.supplier_name,
+                    "po_id": po.po_id,
+                    "items": po.items,
+                }
+            ]
+            await dispatch_po_generation(
+                session, po.id, chat_id, po.po_id, data_payload
+            )
+
+        await telegram_client.answer_callback_query(
+            callback_id, text=f"PO finalized for {supplier_name}."
+        )
+        return
+
     set_pending_supplier(chat_id, supplier_name)
     await telegram_client.answer_callback_query(
         callback_id,
@@ -118,16 +167,22 @@ async def _handle_supplier_select(callback_id: str, chat_id: int, data: str) -> 
 
 
 async def _handle_supplier_page(callback_id: str, chat_id: int, data: str) -> None:
-    _, page_str = data.split(":", 1)
+    parts = data.split(":", 2)
+    if len(parts) < 2:
+        await telegram_client.answer_callback_query(callback_id, text="Invalid page.")
+        return
+
     try:
-        page = int(page_str)
+        page = int(parts[1])
     except ValueError:
         await telegram_client.answer_callback_query(callback_id, text="Invalid page.")
         return
 
+    po_db_id = parts[2] if len(parts) == 3 else None
+
     from app.bot.handlers.default_handler import _send_supplier_picker
 
-    await _send_supplier_picker(chat_id, page=page)
+    await _send_supplier_picker(chat_id, page=page, po_db_id=po_db_id)
     await telegram_client.answer_callback_query(callback_id, text="Loading suppliers…")
 
 
