@@ -71,6 +71,7 @@ async def create_supplier(
     session.add(supplier)
     await session.flush()
     await session.refresh(supplier)
+    await session.commit()
     return supplier
 
 
