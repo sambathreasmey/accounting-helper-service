@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import InvalidToken, decode_token
 from app.db.crud import (
+    count_pos_for_suppliers,
     create_po,
     create_supplier,
     dashboard_stats,
@@ -86,8 +87,17 @@ async def get_suppliers(
         limit=page_size,
         offset=(page - 1) * page_size,
     )
+    counts = await count_pos_for_suppliers(
+        session, chat_id=chat_id, supplier_ids=[s.id for s in rows]
+    )
     return {
-        "items": [supplier.to_dict() for supplier in rows],
+        "items": [
+            supplier.to_dict(
+                next_po_number=counts.get(supplier.id, 0)
+                + (supplier.po_start_number or 1)
+            )
+            for supplier in rows
+        ],
         "total": total,
         "page": page,
         "page_size": page_size,
@@ -100,9 +110,14 @@ async def create_supplier_entry(
     session: SessionDep,
     chat_id: int = Depends(get_chat_id),
 ):
-    supplier = await create_supplier(session, chat_id=chat_id, name=body.name)
+    supplier = await create_supplier(
+        session,
+        chat_id=chat_id,
+        name=body.name,
+        po_start_number=body.po_start_number,
+    )
     await cache_invalidate_chat(chat_id)
-    return supplier.to_dict()
+    return supplier.to_dict(next_po_number=supplier.po_start_number or 1)
 
 
 @router.patch("/suppliers/{supplier_id}")
@@ -116,9 +131,16 @@ async def update_supplier_entry(
     if supplier is None or supplier.chat_id != chat_id:
         raise HTTPException(status_code=404, detail="Not found")
 
-    supplier = await update_supplier(session, supplier, name=body.name)
+    supplier = await update_supplier(
+        session, supplier, name=body.name, po_start_number=body.po_start_number
+    )
     await cache_invalidate_chat(chat_id)
-    return supplier.to_dict()
+
+    counts = await count_pos_for_suppliers(
+        session, chat_id=chat_id, supplier_ids=[supplier.id]
+    )
+    next_number = counts.get(supplier.id, 0) + (supplier.po_start_number or 1)
+    return supplier.to_dict(next_po_number=next_number)
 
 
 @router.delete("/suppliers/{supplier_id}", status_code=status.HTTP_204_NO_CONTENT)

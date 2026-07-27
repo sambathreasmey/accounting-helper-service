@@ -2,7 +2,15 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Enum, ForeignKey, Text, UniqueConstraint, func
+from sqlalchemy import (
+    BigInteger,
+    Enum,
+    ForeignKey,
+    Integer,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -61,6 +69,11 @@ class Supplier(Base):
     chat_id: Mapped[int] = mapped_column(BigInteger, index=True, nullable=False)
     name: Mapped[str] = mapped_column(Text, nullable=False, index=True)
 
+    # Optional per-supplier PO numbering offset. When set, the next
+    # generated PO for this supplier starts counting from this number
+    # instead of the default of 1 — see build_po_id_for_supplier().
+    po_start_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         server_default=func.now(), nullable=False
     )
@@ -76,13 +89,17 @@ class Supplier(Base):
         back_populates="supplier"
     )
 
-    def to_dict(self) -> dict:
-        return {
+    def to_dict(self, *, next_po_number: int | None = None) -> dict:
+        data = {
             "id": str(self.id),
             "chat_id": self.chat_id,
             "name": self.name,
+            "po_start_number": self.po_start_number,
             "created_at": self.created_at.isoformat(),
         }
+        if next_po_number is not None:
+            data["next_po_number"] = next_po_number
+        return data
 
 
 class PurchaseOrder(Base):

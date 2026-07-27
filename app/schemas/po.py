@@ -17,10 +17,12 @@ class RegeneratePORequest(BaseModel):
 
 class SupplierCreateRequest(BaseModel):
     name: str = Field(min_length=1)
+    po_start_number: int | None = Field(default=None, ge=1)
 
 
 class SupplierUpdateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=200)
+    po_start_number: int | None = Field(default=None, ge=1)
 
 
 class POCallbackRequest(BaseModel):

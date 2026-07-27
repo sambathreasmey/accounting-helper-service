@@ -54,6 +54,7 @@ async def create_supplier(
     *,
     chat_id: int,
     name: str,
+    po_start_number: int | None = None,
 ) -> Supplier:
     normalized_name = " ".join(name.split()).strip()
     if not normalized_name:
@@ -67,7 +68,11 @@ async def create_supplier(
     if existing:
         return existing
 
-    supplier = Supplier(chat_id=chat_id, name=normalized_name)
+    supplier = Supplier(
+        chat_id=chat_id,
+        name=normalized_name,
+        po_start_number=po_start_number,
+    )
     session.add(supplier)
     await session.flush()
     await session.refresh(supplier)
@@ -110,9 +115,14 @@ async def delete_supplier(session: AsyncSession, supplier: Supplier) -> None:
 
 
 async def update_supplier(
-    session: AsyncSession, supplier: Supplier, *, name: str
+    session: AsyncSession,
+    supplier: Supplier,
+    *,
+    name: str,
+    po_start_number: int | None = None,
 ) -> Supplier:
     supplier.name = name.strip()
+    supplier.po_start_number = po_start_number
     await session.commit()
     await session.refresh(supplier)
     return supplier
@@ -159,14 +169,42 @@ async def build_po_id_for_supplier(
     session: AsyncSession, *, chat_id: int, supplier_name: str
 ) -> str:
     normalized_name = " ".join((supplier_name or "").split()).strip().lower()
-    query = (
+
+    supplier_query = select(Supplier).where(
+        Supplier.chat_id == chat_id, func.lower(Supplier.name) == normalized_name
+    )
+    supplier = (await session.execute(supplier_query)).scalars().first()
+    start_number = (
+        supplier.po_start_number
+        if supplier and supplier.po_start_number is not None
+        else 1
+    )
+
+    count_query = (
         select(func.count(PurchaseOrder.id))
         .join(Supplier, PurchaseOrder.supplier_id == Supplier.id)
         .where(PurchaseOrder.chat_id == chat_id)
         .where(func.lower(Supplier.name) == normalized_name)
     )
-    count = (await session.execute(query)).scalar_one()
-    return f"PO-{count + 1:05d}"
+    count = (await session.execute(count_query)).scalar_one()
+    return f"PO-{count + start_number:05d}"
+
+
+async def count_pos_for_suppliers(
+    session: AsyncSession, *, chat_id: int, supplier_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, int]:
+    """Batch count of purchase orders per supplier, used to compute each
+    supplier's next PO number without a query per row."""
+    if not supplier_ids:
+        return {}
+    query = (
+        select(PurchaseOrder.supplier_id, func.count(PurchaseOrder.id))
+        .where(PurchaseOrder.chat_id == chat_id)
+        .where(PurchaseOrder.supplier_id.in_(supplier_ids))
+        .group_by(PurchaseOrder.supplier_id)
+    )
+    rows = (await session.execute(query)).all()
+    return {supplier_id: count for supplier_id, count in rows}
 
 
 async def finalize_po(
