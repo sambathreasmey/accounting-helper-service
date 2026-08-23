@@ -16,15 +16,19 @@ URL_REGEX = re.compile(r"https?://\S+")
 def is_contain_link_message(text: str) -> bool:
     return bool(URL_REGEX.search(text))
 
+
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
 }
 
+
 async def get_streams(page_url: str) -> list[dict[str, str]]:
     print("Fetching streams for URL:", page_url)
-    async with httpx.AsyncClient(timeout=10.0, follow_redirects=True, headers=HEADERS) as client:
+    async with httpx.AsyncClient(
+        timeout=10.0, follow_redirects=True, headers=HEADERS
+    ) as client:
         response = await client.get(page_url)
     print("HTTP response status:", response.status_code)
     print("Response text snippet:", response.text[:500])
