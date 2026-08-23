@@ -38,3 +38,14 @@ def pop_pending_supplier(chat_id: int) -> str | None:
     if time.monotonic() > expires_at:
         return None
     return supplier_name
+
+
+_pending_stream_urls: dict[tuple[int, str], str] = {}
+
+
+def set_pending_stream_url(user_msg_id: int, resolution: str, url: str) -> None:
+    _pending_stream_urls[(user_msg_id, resolution)] = url
+
+
+def pop_pending_stream_url(user_msg_id: int, resolution: str) -> str | None:
+    return _pending_stream_urls.pop((user_msg_id, resolution), None)

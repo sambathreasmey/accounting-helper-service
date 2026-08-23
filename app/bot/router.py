@@ -7,6 +7,10 @@ from app.bot.handlers.forward_handler import (
     handle_forward_message,
     is_forwarded_message,
 )
+from app.bot.handlers.contain_url_handler import (
+    handle_contain_link_message,
+    is_contain_link_message,
+)
 from app.bot.handlers.po_handler import handle_po_message, looks_like_po_message
 from app.services.edit_state import pop_pending_edit, pop_pending_supplier
 
@@ -42,6 +46,8 @@ async def handle_update(update: dict) -> None:
             await handle_po_message(
                 chat_id, text, default_supplier_name=pending_supplier_name
             )
+        elif is_contain_link_message(text):
+            await handle_contain_link_message(chat_id, message)
         else:
             await handle_default_message(chat_id, text)
     except Exception:

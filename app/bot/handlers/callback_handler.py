@@ -2,10 +2,19 @@ import logging
 import uuid
 
 from app.core.config import settings
-from app.db.crud import build_po_id_for_supplier, finalize_po, get_po
+from app.db.crud import (
+    build_po_id_for_supplier,
+    create_stream_request,
+    finalize_po,
+    get_po,
+)
 from app.db.database import async_session_maker
 from app.db.models import POStatus
-from app.services.edit_state import set_pending_edit, set_pending_supplier
+from app.services.edit_state import (
+    pop_pending_stream_url,
+    set_pending_edit,
+    set_pending_supplier,
+)
 from app.services.po_dispatch import dispatch_po_generation
 from app.services.telegram_client import telegram_client
 
@@ -30,11 +39,16 @@ async def handle_callback_query(callback_query: dict) -> None:
         "po_forward",
         "supplier_select",
         "supplier_page",
+        "stream_select",
     }:
         logger.warning("Malformed callback_data: %r", data)
         await telegram_client.answer_callback_query(
             callback_id, text="Invalid action.", show_alert=True
         )
+        return
+
+    if action == "stream_select":
+        await _handle_stream_select(callback_id, callback_query, data)
         return
 
     if action in {"supplier_select", "supplier_page"}:
@@ -219,3 +233,75 @@ async def _handle_forward(callback_id: str, po, message: dict) -> None:
         return
 
     await telegram_client.answer_callback_query(callback_id, text="Forwarded ✅")
+
+
+async def _handle_stream_select(
+    callback_id: str, callback_query: dict, data: str
+) -> None:
+    """Persists the stream selection (url + resolution), then deletes both
+    the original link message and the button keyboard message."""
+    parts = data.split(":", 3)
+    if len(parts) < 4:
+        await telegram_client.answer_callback_query(
+            callback_id, text="Invalid selection format.", show_alert=True
+        )
+        return
+
+    selected_label = parts[1]  # e.g., "FHD"
+    selected_resolution = parts[2]  # e.g., "1920x1080"
+    user_msg_id = int(parts[3])  # Original user message ID
+
+    message = callback_query["message"]
+    chat_id = message["chat"]["id"]
+    bot_msg_id = message["message_id"]  # Bot message ID (with buttons)
+
+    # 1. Answer callback popup
+    await telegram_client.answer_callback_query(
+        callback_id, text=f"Selected quality: {selected_label} ({selected_resolution})"
+    )
+
+    # 2. Recover the URL stashed for this user_msg_id + resolution
+    url = pop_pending_stream_url(user_msg_id, selected_resolution)
+    if not url:
+        logger.warning(
+            "No pending URL found for user_msg_id %s, resolution %s",
+            user_msg_id,
+            selected_resolution,
+        )
+        await telegram_client.answer_callback_query(
+            callback_id,
+            text="This request expired. Please resend the link.",
+            show_alert=True,
+        )
+        return
+
+    # 3. Persist the selection
+    async with async_session_maker() as session:
+        stream = await create_stream_request(
+            session,
+            chat_id=chat_id,
+            url=url,
+            label=selected_label,
+            resolution=selected_resolution,
+            user_msg_id=user_msg_id,
+            bot_msg_id=bot_msg_id,
+        )
+
+    # 4. Delete the user's original message (with link)
+    try:
+        await telegram_client.delete_message(chat_id=chat_id, message_id=user_msg_id)
+    except Exception as exc:
+        logger.warning("Could not delete user message %s: %s", user_msg_id, exc)
+
+    # 5. Delete the bot's message (containing buttons)
+    try:
+        await telegram_client.delete_message(chat_id=chat_id, message_id=bot_msg_id)
+    except Exception as exc:
+        logger.warning("Could not delete bot message %s: %s", bot_msg_id, exc)
+
+    # 6. Proceed with application logic (e.g. notify or start streaming task)
+    await telegram_client.send_message(
+        chat_id=chat_id,
+        text=f"✅ Processing <b>{selected_label} ({selected_resolution})</b> stream (ref: {stream.id})...",
+        parse_mode="HTML",
+    )

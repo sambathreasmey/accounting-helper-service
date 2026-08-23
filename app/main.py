@@ -9,6 +9,7 @@ from app.api.auth import router as auth_router
 from app.api.po_callback import router as po_callback_router
 from app.api.telegram import router as telegram_router
 from app.api.webapp_api import router as webapp_api_router
+from app.api.external import router as external_router
 from app.core.config import settings
 from app.db.database import dispose_engine, init_models
 from app.services.telegram_client import telegram_client
@@ -51,6 +52,7 @@ def create_app() -> FastAPI:
     app.include_router(telegram_router)
     app.include_router(po_callback_router)
     app.include_router(webapp_api_router)
+    app.include_router(external_router)
     # Old static Mini App — safe to remove once Cloudflare Pages is live,
     # or keep as a fallback at /app.
     app.mount(

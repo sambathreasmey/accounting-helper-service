@@ -7,6 +7,7 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Integer,
+    String,
     Text,
     UniqueConstraint,
     func,
@@ -191,4 +192,41 @@ class PurchaseOrder(Base):
             "file_url": self.file_url,
             "created_at": created_at.isoformat() if created_at else None,
             "updated_at": updated_at.isoformat() if updated_at else None,
+        }
+
+
+class StreamStatus(str, enum.Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    DONE = "done"
+
+
+class StreamRequest(Base):
+    __tablename__ = "stream_requests"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    chat_id: Mapped[int] = mapped_column(BigInteger, index=True)
+    url: Mapped[str] = mapped_column(String(2048), nullable=False)
+    label: Mapped[str] = mapped_column(String, nullable=False)
+    resolution: Mapped[str] = mapped_column(String, nullable=False)
+    user_msg_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    bot_msg_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    status: Mapped[StreamStatus] = mapped_column(
+        Enum(StreamStatus), default=StreamStatus.PENDING
+    )
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    def to_dict(self) -> dict:
+        return {
+            "id": str(self.id),
+            "chat_id": self.chat_id,
+            "label": self.label,
+            "resolution": self.resolution,
+            "status": self.status.value
+            if hasattr(self.status, "value")
+            else self.status,
+            "user_msg_id": self.user_msg_id,
+            "bot_msg_id": self.bot_msg_id,
+            "url": self.url,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }

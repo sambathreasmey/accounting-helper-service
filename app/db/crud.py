@@ -3,7 +3,16 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import POSource, POStatus, PurchaseOrder, Supplier, User
+from app.db.models import (
+    POSource,
+    POStatus,
+    PurchaseOrder,
+    StreamRequest,
+    StreamStatus,
+    Supplier,
+    User,
+)
+from app.services.crypto import encrypt_url
 
 
 async def upsert_user_profile(
@@ -323,3 +332,76 @@ async def update_po_content(
     await session.commit()
     await session.refresh(po)
     return po
+
+
+async def create_stream_request(
+    session: AsyncSession,
+    *,
+    chat_id: int,
+    url: str,
+    label: str,
+    resolution: str,
+    user_msg_id: int,
+    bot_msg_id: int,
+) -> StreamRequest:
+    stream = StreamRequest(
+        chat_id=chat_id,
+        url=encrypt_url((url or "").strip()),
+        label=(label or "").strip() or "UNKNOWN",
+        resolution=" ".join((resolution or "").split()).strip() or "UNKNOWN",
+        user_msg_id=user_msg_id,
+        bot_msg_id=bot_msg_id,
+        status=StreamStatus.PENDING,
+    )
+    session.add(stream)
+    await session.flush()
+    await session.refresh(stream)
+    await session.commit()
+    return stream
+
+
+async def get_all_streams(
+    session: AsyncSession,
+    *,
+    chat_id: int | None = None,
+    status: StreamStatus | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> list[StreamRequest]:
+    """Returns stream requests as a list, optionally filtered by chat_id
+    and/or status, newest first."""
+    stmt = select(StreamRequest).order_by(StreamRequest.created_at.desc())
+
+    if chat_id is not None:
+        stmt = stmt.where(StreamRequest.chat_id == chat_id)
+    if status is not None:
+        stmt = stmt.where(StreamRequest.status == status)
+
+    stmt = stmt.limit(limit).offset(offset)
+
+    result = await session.execute(stmt)
+    return list(result.scalars().all())
+
+
+async def update_stream_status(
+    session: AsyncSession,
+    stream_id: uuid.UUID,
+    status: StreamStatus,
+) -> StreamRequest | None:
+    """Updates a stream request's status. Returns the updated row, or None
+    if no stream with that id exists."""
+    stream = await session.get(StreamRequest, stream_id)
+    if stream is None:
+        return None
+
+    stream.status = status
+    await session.flush()
+    await session.refresh(stream)
+    await session.commit()
+    return stream
+
+
+async def get_stream(
+    session: AsyncSession, stream_id: uuid.UUID
+) -> StreamRequest | None:
+    return await session.get(StreamRequest, stream_id)

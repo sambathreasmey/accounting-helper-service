@@ -48,5 +48,8 @@ class AppSettings(BaseSettings):
     JWT_ACCESS_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_EXPIRE_DAYS: int = 14
 
+    # Stream URL encryption key for generating secure links to stream content.
+    STREAM_URL_ENCRYPTION_KEY: str
+
 
 settings = AppSettings()
