@@ -22,6 +22,8 @@ async def get_streams(page_url: str) -> list[dict[str, str]]:
     print("Fetching streams for URL:", page_url)  # Debugging line
     async with httpx.AsyncClient(timeout=10.0) as client:
         response = await client.get(page_url)
+    print("HTTP response status:", response.status_code)  # Debugging line
+    print("Response text snippet:", response.text[:500])  # Debugging line
 
     soup = BeautifulSoup(response.text, "html.parser")
     preload_link = soup.find("link", rel="preload")
