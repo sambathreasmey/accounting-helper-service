@@ -1,5 +1,6 @@
 import logging
 import re
+from urllib.parse import urljoin
 
 import httpx
 from bs4 import BeautifulSoup
@@ -17,24 +18,26 @@ def is_contain_link_message(text: str) -> bool:
     return bool(URL_REGEX.search(text))
 
 
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9",
-}
-
-
 async def get_streams(page_url: str) -> list[dict[str, str]]:
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/151.0.0.0 Safari/537.36"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": page_url,
+    }
+
     async with httpx.AsyncClient(
-        timeout=20.0,
+        timeout=30.0,
         follow_redirects=True,
-        headers=HEADERS,
+        headers=headers,
     ) as client:
         response = await client.get(page_url)
+        response.raise_for_status()
 
     print("STATUS:", response.status_code)
     print("FINAL URL:", response.url)
@@ -43,20 +46,48 @@ async def get_streams(page_url: str) -> list[dict[str, str]]:
 
     soup = BeautifulSoup(response.text, "html.parser")
 
-    # Look at every preload
-    for link in soup.find_all("link", rel="preload"):
-        print(
-            "PRELOAD:",
-            link.get("as"),
-            link.get("type"),
-            link.get("href"),
-        )
+    # Find ALL preload links
+    preload_links = soup.find_all(
+        "link",
+        rel=lambda value: value and "preload" in value,
+        href=True,
+    )
 
-    # Search directly for m3u8
-    if ".m3u8" in response.text:
-        print("✅ m3u8 exists in raw HTML")
-    else:
-        print("❌ No m3u8 in raw HTML")
+    print("PRELOAD LINKS:", len(preload_links))
+
+    for index, link in enumerate(preload_links):
+        href = str(link.get("href"))
+
+        print(f"\n--- PRELOAD {index} ---")
+        print("RAW HREF:", href)
+
+        full_url = urljoin(str(response.url), href)
+
+        print("FULL URL:", full_url)
+
+        # Look for m3u8
+        if ".m3u8" in full_url.lower():
+            print("✅ M3U8 FOUND")
+
+            streams = parse_m3u8_resolutions(full_url)
+
+            if streams:
+                return streams
+
+    print("❌ No usable m3u8 preload found")
+
+    # Extra debugging:
+    # Search the entire HTML for m3u8
+    m3u8_matches = re.findall(
+        r'https?[^"\'<>\s]+\.m3u8[^"\'<>\s]*',
+        response.text,
+        re.IGNORECASE,
+    )
+
+    print("\nM3U8 URLs found directly in HTML:", len(m3u8_matches))
+
+    for url in m3u8_matches[:10]:
+        print(url)
 
     return []
 
