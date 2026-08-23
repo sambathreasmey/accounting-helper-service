@@ -24,6 +24,7 @@ async def get_streams(page_url: str) -> list[dict[str, str]]:
 
     soup = BeautifulSoup(response.text, "html.parser")
     preload_link = soup.find("link", rel="preload")
+    print("Preload link found:", preload_link)  # Debugging line
 
     if not preload_link or "href" not in preload_link.attrs:
         return []
