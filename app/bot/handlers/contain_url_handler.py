@@ -1,8 +1,8 @@
 import logging
 import re
 
-from curl_cffi.requests import AsyncSession
 from bs4 import BeautifulSoup
+from curl_cffi.requests import AsyncSession
 
 from app.bot.keyboards.stream_keyboard import build_stream_quality_keyboard
 from app.services.edit_state import set_pending_stream_url
