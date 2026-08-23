@@ -2,7 +2,7 @@ import logging
 import re
 
 from app.bot.keyboards.stream_keyboard import build_stream_quality_keyboard
-from app.services.edit_state import create_pending_stream_request
+from app.services.edit_state import set_pending_stream_url
 from app.services.stream_dispatch import dispatch_get_streams
 from app.services.telegram_client import telegram_client
 
@@ -47,7 +47,7 @@ async def send_stream_quality_picker(
 ) -> None:
     """Called from the /streams/callback endpoint once the GitHub Action reports back."""
     for stream in streams:
-        create_pending_stream_request(user_msg_id, stream["resolution"], target_url)
+        set_pending_stream_url(user_msg_id, stream["resolution"], target_url)
 
     keyboard = build_stream_quality_keyboard(streams, user_msg_id)
     await telegram_client.send_message(
