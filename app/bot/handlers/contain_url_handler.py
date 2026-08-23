@@ -19,6 +19,7 @@ def is_contain_link_message(text: str) -> bool:
 
 async def get_streams(page_url: str) -> list[dict[str, str]]:
     """Build and return stream resolutions asynchronously."""
+    print("Fetching streams for URL:", page_url)  # Debugging line
     async with httpx.AsyncClient(timeout=10.0) as client:
         response = await client.get(page_url)
 
