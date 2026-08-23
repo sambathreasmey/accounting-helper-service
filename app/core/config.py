@@ -50,6 +50,14 @@ class AppSettings(BaseSettings):
 
     # Stream URL encryption key for generating secure links to stream content.
     STREAM_URL_ENCRYPTION_KEY: str
+    GITHUB_TOKEN: str  # PAT with repo scope, used to trigger repository_dispatch
+    GITHUB_REPO: str  # "owner/repo"
+    PUBLIC_BASE_URL: (
+        str  # e.g. "https://your-fastapi-domain.com", used to build the callback URL
+    )
+    STREAM_CALLBACK_TOKEN: (
+        str  # secret token for verifying the callback from GitHub Actions
+    )
 
 
 settings = AppSettings()

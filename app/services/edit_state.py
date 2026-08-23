@@ -1,4 +1,6 @@
 import time
+from typing import TypedDict
+import uuid
 
 _TTL_SECONDS = 600  # 10 minutes to reply with the correction before it expires
 
@@ -49,3 +51,33 @@ def set_pending_stream_url(user_msg_id: int, resolution: str, url: str) -> None:
 
 def pop_pending_stream_url(user_msg_id: int, resolution: str) -> str | None:
     return _pending_stream_urls.pop((user_msg_id, resolution), None)
+
+
+class PendingStreamRequest(TypedDict):
+    chat_id: int
+    user_msg_id: int
+    target_url: str
+
+
+_pending_stream_requests: dict[str, tuple[PendingStreamRequest, float]] = {}
+
+
+def create_pending_stream_request(
+    chat_id: int, user_msg_id: int, target_url: str
+) -> str:
+    request_id = str(uuid.uuid4())
+    _pending_stream_requests[request_id] = (
+        {"chat_id": chat_id, "user_msg_id": user_msg_id, "target_url": target_url},
+        time.monotonic() + _TTL_SECONDS,
+    )
+    return request_id
+
+
+def pop_pending_stream_request(request_id: str) -> PendingStreamRequest | None:
+    entry = _pending_stream_requests.pop(request_id, None)
+    if entry is None:
+        return None
+    request, expires_at = entry
+    if time.monotonic() > expires_at:
+        return None
+    return request
