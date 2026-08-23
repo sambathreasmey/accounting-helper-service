@@ -1,7 +1,7 @@
 import logging
 import re
 
-import httpx
+from curl_cffi.requests import AsyncSession
 from bs4 import BeautifulSoup
 
 from app.bot.keyboards.stream_keyboard import build_stream_quality_keyboard
@@ -17,38 +17,31 @@ def is_contain_link_message(text: str) -> bool:
     return bool(URL_REGEX.search(text))
 
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Sec-Ch-Ua": '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
-    "Sec-Ch-Ua-Mobile": "?0",
-    "Sec-Ch-Ua-Platform": '"Windows"',
-    "Sec-Fetch-Dest": "document",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-Site": "none",
-    "Sec-Fetch-User": "?1",
-    "Upgrade-Insecure-Requests": "1",
-}
-
-
 async def get_streams(page_url: str) -> list[dict[str, str]]:
     print("Fetching streams for URL:", page_url)
-    async with httpx.AsyncClient(
-        timeout=10.0, follow_redirects=True, headers=HEADERS
-    ) as client:
-        response = await client.get(page_url)
+
+    async with AsyncSession(impersonate="chrome124", timeout=10) as session:
+        response = await session.get(page_url, allow_redirects=True)
+
     print("HTTP response status:", response.status_code)
     print("Response text snippet:", response.text[:500])
 
     soup = BeautifulSoup(response.text, "html.parser")
     preload_link = soup.find("link", rel="preload")
-    print("Preload link found:", preload_link)
 
-    if not preload_link or "href" not in preload_link.attrs:
+    m3u8_url = None
+    if preload_link and "href" in preload_link.attrs:
+        m3u8_url = preload_link["href"]
+    else:
+        match = re.search(r'https?://[^\s"\']*multi=[^\s"\']+', response.text)
+        if match:
+            m3u8_url = match.group(0)
+
+    if not m3u8_url:
+        print("No stream link found in response.")
         return []
 
-    return parse_m3u8_resolutions(preload_link["href"])
+    return parse_m3u8_resolutions(m3u8_url)
 
 
 def parse_m3u8_resolutions(url: str) -> list[dict[str, str]]:
