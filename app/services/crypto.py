@@ -1,4 +1,5 @@
 from cryptography.fernet import Fernet, InvalidToken
+
 from app.core.config import settings
 
 _fernet = Fernet(settings.STREAM_URL_ENCRYPTION_KEY.encode())
