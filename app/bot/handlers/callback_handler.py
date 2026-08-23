@@ -1,6 +1,8 @@
 import logging
 import uuid
 
+from httpx import HTTPError
+
 from app.core.config import settings
 from app.db.crud import (
     build_po_id_for_supplier,
@@ -290,13 +292,13 @@ async def _handle_stream_select(
     # 4. Delete the user's original message (with link)
     try:
         await telegram_client.delete_message(chat_id=chat_id, message_id=user_msg_id)
-    except Exception as exc:
+    except HTTPError as exc:
         logger.warning("Could not delete user message %s: %s", user_msg_id, exc)
 
     # 5. Delete the bot's message (containing buttons)
     try:
         await telegram_client.delete_message(chat_id=chat_id, message_id=bot_msg_id)
-    except Exception as exc:
+    except HTTPError as exc:
         logger.warning("Could not delete bot message %s: %s", bot_msg_id, exc)
 
     # 6. Proceed with application logic (e.g. notify or start streaming task)

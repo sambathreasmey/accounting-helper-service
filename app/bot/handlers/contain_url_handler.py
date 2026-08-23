@@ -1,9 +1,8 @@
 import logging
 import re
-from typing import Dict, List
 
-from bs4 import BeautifulSoup
 import httpx
+from bs4 import BeautifulSoup
 
 from app.bot.keyboards.stream_keyboard import build_stream_quality_keyboard
 from app.services.edit_state import set_pending_stream_url
@@ -18,7 +17,7 @@ def is_contain_link_message(text: str) -> bool:
     return bool(URL_REGEX.search(text))
 
 
-async def get_streams(page_url: str) -> List[Dict[str, str]]:
+async def get_streams(page_url: str) -> list[dict[str, str]]:
     """Build and return stream resolutions asynchronously."""
     async with httpx.AsyncClient(timeout=10.0) as client:
         response = await client.get(page_url)
@@ -32,7 +31,7 @@ async def get_streams(page_url: str) -> List[Dict[str, str]]:
     return parse_m3u8_resolutions(preload_link["href"])
 
 
-def parse_m3u8_resolutions(url: str) -> List[Dict[str, str]]:
+def parse_m3u8_resolutions(url: str) -> list[dict[str, str]]:
     multi_match = re.search(r"multi=([^/]+)", url)
     if not multi_match:
         return []
@@ -93,7 +92,7 @@ async def handle_contain_link_message(chat_id: int, message: dict) -> None:
 
 
 async def _send_stream_quality_picker(
-    chat_id: int, user_msg_id: int, streams: List[Dict[str, str]], target_url: str
+    chat_id: int, user_msg_id: int, streams: list[dict[str, str]], target_url: str
 ) -> None:
     for stream in streams:
         set_pending_stream_url(user_msg_id, stream["resolution"], target_url)

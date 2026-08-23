@@ -1,9 +1,5 @@
-# app/bot/keyboards/stream_keyboard.py
-from typing import Dict, List
-
-
 def build_stream_quality_keyboard(
-    streams: List[Dict[str, str]], user_msg_id: int
+    streams: list[dict[str, str]], user_msg_id: int
 ) -> dict:
     """Generates inline buttons containing label, resolution, and user_msg_id.
 
