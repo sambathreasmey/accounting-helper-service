@@ -1,6 +1,6 @@
 import time
-from typing import TypedDict
 import uuid
+from typing import TypedDict
 
 _TTL_SECONDS = 600  # 10 minutes to reply with the correction before it expires
 
