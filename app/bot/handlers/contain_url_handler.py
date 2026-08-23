@@ -18,27 +18,47 @@ def is_contain_link_message(text: str) -> bool:
 
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
 }
 
 
 async def get_streams(page_url: str) -> list[dict[str, str]]:
     async with httpx.AsyncClient(
-        timeout=10.0, follow_redirects=True, headers=HEADERS
+        timeout=20.0,
+        follow_redirects=True,
+        headers=HEADERS,
     ) as client:
         response = await client.get(page_url)
 
+    print("STATUS:", response.status_code)
+    print("FINAL URL:", response.url)
+    print("CONTENT TYPE:", response.headers.get("content-type"))
+    print("CONTENT LENGTH:", len(response.text))
+
     soup = BeautifulSoup(response.text, "html.parser")
-    print(soup.prettify())  # Debug: Print the entire HTML content
-    preload_link = soup.find("link", rel="preload")
-    print("Preload link found:", preload_link)
 
-    if not preload_link or "href" not in preload_link.attrs:
-        return []
+    # Look at every preload
+    for link in soup.find_all("link", rel="preload"):
+        print(
+            "PRELOAD:",
+            link.get("as"),
+            link.get("type"),
+            link.get("href"),
+        )
 
-    return parse_m3u8_resolutions(preload_link["href"])
+    # Search directly for m3u8
+    if ".m3u8" in response.text:
+        print("✅ m3u8 exists in raw HTML")
+    else:
+        print("❌ No m3u8 in raw HTML")
+
+    return []
 
 
 def parse_m3u8_resolutions(url: str) -> list[dict[str, str]]:
