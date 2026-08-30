@@ -51,7 +51,7 @@ async def get_streams_list(
 
 @router.get("/streams/{stream_id}")
 async def get_stream_by_id_endpoint(
-    stream_id: int,
+    stream_id: uuid.UUID,
     session: SessionDep,
 ):
     stream = await get_stream_by_id(session, stream_id)
