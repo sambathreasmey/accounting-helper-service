@@ -6,7 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.handlers.contain_url_handler import send_stream_quality_picker
 from app.core.config import settings
-from app.db.crud import get_all_streams, get_stream, update_stream_status
+from app.db.crud import (
+    get_all_streams,
+    get_stream,
+    get_stream_by_id,
+    update_stream_status,
+)
 from app.db.database import get_session
 from app.db.models import StreamStatus
 from app.schemas.stream import StreamCallbackRequest, StreamStatusUpdateRequest
@@ -42,6 +47,18 @@ async def get_streams_list(
         "page": page,
         "page_size": page_size,
     }
+
+
+@router.get("/streams/{stream_id}")
+async def get_stream_by_id_endpoint(
+    stream_id: int,
+    session: SessionDep,
+):
+    stream = await get_stream_by_id(session, stream_id)
+    if not stream:
+        raise HTTPException(status_code=404, detail="Stream not found")
+
+    return stream.to_dict()
 
 
 @router.patch("/streams/{stream_id}/status")

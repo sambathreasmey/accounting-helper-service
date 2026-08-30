@@ -405,3 +405,13 @@ async def get_stream(
     session: AsyncSession, stream_id: uuid.UUID
 ) -> StreamRequest | None:
     return await session.get(StreamRequest, stream_id)
+
+
+async def get_stream_by_id(
+    session: AsyncSession,
+    stream_id: int,
+) -> StreamRequest | None:
+    """Returns a single stream request by its ID, or None if not found."""
+    stmt = select(StreamRequest).where(StreamRequest.id == stream_id)
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
