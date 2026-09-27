@@ -36,12 +36,12 @@ async def handle_contain_link_message(
     target_url = match.group(0)
 
     # 1. Check if the URL domain is smey.com
-    parsed_url = urlparse(target_url)
-    if parsed_url.netloc != "smey.com" and not parsed_url.netloc.endswith(".smey.com"):
-        await telegram_client.send_message(
-            chat_id, "⚠️ Invalid link domain. Only smey.com links are supported."
-        )
-        return
+    # parsed_url = urlparse(target_url)
+    # if parsed_url.netloc != "smey.com" and not parsed_url.netloc.endswith(".smey.com"):
+    #     await telegram_client.send_message(
+    #         chat_id, "⚠️ Invalid link domain. Only smey.com links are supported."
+    #     )
+    #     return
 
     # 2. Extract video name from URL
     new_video_name = extract_video_name(target_url)
