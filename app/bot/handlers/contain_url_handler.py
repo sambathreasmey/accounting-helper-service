@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.keyboards.stream_keyboard import build_stream_quality_keyboard
 from app.db.crud import get_all_streams_validate_name
-from app.services.crypto import encrypt_url
+from app.services.crypto import decrypt_url
 from app.services.edit_state import set_pending_stream_url
 from app.services.stream_dispatch import dispatch_get_streams
 from app.services.telegram_client import telegram_client
@@ -49,7 +49,7 @@ async def handle_contain_link_message(
     # 3. Fetch all streams ONLY for the current chat_id to check duplicates
     existing_streams = await get_all_streams_validate_name(session, limit=None)
     existing_filenames = [
-        encrypt_url((s.url or "").strip())
+        decrypt_url((s.url or "").strip())
         for s in existing_streams
         if s.url is not None
     ]
