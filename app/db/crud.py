@@ -383,6 +383,28 @@ async def get_all_streams(
     return list(result.scalars().all())
 
 
+async def get_all_streams_validate_name(
+    session: AsyncSession,
+    *,
+    chat_id: int | None = None,
+    status: StreamStatus | None = None,
+    limit: int | None = 50,
+    offset: int = 0,
+) -> list[StreamRequest]:
+    stmt = select(StreamRequest).order_by(StreamRequest.created_at.desc())
+
+    if chat_id is not None:
+        stmt = stmt.where(StreamRequest.chat_id == chat_id)
+    if status is not None:
+        stmt = stmt.where(StreamRequest.status == status)
+
+    if limit is not None:
+        stmt = stmt.limit(limit).offset(offset)
+
+    result = await session.execute(stmt)
+    return list(result.scalars().all())
+
+
 async def update_stream_status(
     session: AsyncSession,
     stream_id: uuid.UUID,

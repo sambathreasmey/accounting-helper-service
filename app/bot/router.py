@@ -12,6 +12,7 @@ from app.bot.handlers.forward_handler import (
     is_forwarded_message,
 )
 from app.bot.handlers.po_handler import handle_po_message, looks_like_po_message
+from app.db.database import async_session_maker  # <-- Import session maker directly
 from app.services.edit_state import pop_pending_edit, pop_pending_supplier
 
 logger = logging.getLogger("bot.router")
@@ -47,7 +48,9 @@ async def handle_update(update: dict) -> None:
                 chat_id, text, default_supplier_name=pending_supplier_name
             )
         elif is_contain_link_message(text):
-            await handle_contain_link_message(chat_id, message)
+            # Create a DB session scoped specifically to this link request
+            async with async_session_maker() as session:
+                await handle_contain_link_message(session, chat_id, message)
         else:
             await handle_default_message(chat_id, text)
     except Exception:

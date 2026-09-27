@@ -1,7 +1,12 @@
 import logging
 import re
+from urllib.parse import urlparse
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.keyboards.stream_keyboard import build_stream_quality_keyboard
+from app.db.crud import get_all_streams_validate_name
+from app.services.crypto import encrypt_url
 from app.services.edit_state import set_pending_stream_url
 from app.services.stream_dispatch import dispatch_get_streams
 from app.services.telegram_client import telegram_client
@@ -15,7 +20,9 @@ def is_contain_link_message(text: str) -> bool:
     return bool(URL_REGEX.search(text))
 
 
-async def handle_contain_link_message(chat_id: int, message: dict) -> None:
+async def handle_contain_link_message(
+    session: AsyncSession, chat_id: int, message: dict
+) -> None:
     text = message.get("text", "")
     user_msg_id = message["message_id"]
     match = URL_REGEX.search(text)
@@ -28,6 +35,34 @@ async def handle_contain_link_message(chat_id: int, message: dict) -> None:
 
     target_url = match.group(0)
 
+    # 1. Check if the URL domain is smey.com
+    parsed_url = urlparse(target_url)
+    if parsed_url.netloc != "smey.com" and not parsed_url.netloc.endswith(".smey.com"):
+        await telegram_client.send_message(
+            chat_id, "⚠️ Invalid link domain. Only smey.com links are supported."
+        )
+        return
+
+    # 2. Extract video name from URL
+    new_video_name = extract_video_name(target_url)
+
+    # 3. Fetch all streams ONLY for the current chat_id to check duplicates
+    existing_streams = await get_all_streams_validate_name(session, limit=None)
+    existing_filenames = [
+        encrypt_url((s.url or "").strip())
+        for s in existing_streams
+        if s.url is not None
+    ]
+
+    # 4. Check for duplication
+    if is_video_duplicate(new_video_name, existing_filenames):
+        await telegram_client.send_message(
+            chat_id,
+            "⚠️ This video link has already been added. Please send a different link.",
+        )
+        return
+
+    # 5. Dispatch stream task
     try:
         await dispatch_get_streams(chat_id, user_msg_id, target_url)
     except Exception:
@@ -40,6 +75,48 @@ async def handle_contain_link_message(chat_id: int, message: dict) -> None:
     await telegram_client.send_message(
         chat_id, "🔎 Fetching available stream qualities, one moment…"
     )
+
+
+def extract_video_name(url_or_name: str) -> str:
+    """Helper function to cleanly extract and normalize a video identifier/name."""
+    url_or_name = url_or_name.strip().lower()
+
+    # If it's a full URL, extract the video segment
+    if url_or_name.startswith(("http://", "https://")):
+        path = urlparse(url_or_name).path
+        segments = [s for s in path.split("/") if s]
+        if segments:
+            # Take the last segment of the URL path
+            url_or_name = segments[-1]
+
+    # Clean file extensions if present (e.g., .mp4, .mkv)
+    url_or_name = re.sub(r"\.(mp4|mkv|avi|mov|flv|webm)$", "", url_or_name)
+
+    # Standardize whitespace and hyphens
+    url_or_name = re.sub(r"[\s_]+", "-", url_or_name)
+
+    return url_or_name
+
+
+def is_video_duplicate(new_video: str, existing_videos: list[str]) -> bool:
+    """
+    Safely checks if a video name or URL is a duplicate against an existing list.
+
+    :param new_video: The new video URL or name to check.
+    :param existing_videos: List of existing video URLs or names.
+    :return: True if duplicate, False otherwise.
+    """
+    if not new_video or not isinstance(new_video, str):
+        return False
+
+    target_name = extract_video_name(new_video)
+
+    # Fast set lookup on normalized names
+    normalized_existing = {
+        extract_video_name(vid) for vid in existing_videos if isinstance(vid, str)
+    }
+
+    return target_name in normalized_existing
 
 
 async def send_stream_quality_picker(
