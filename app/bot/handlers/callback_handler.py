@@ -290,10 +290,10 @@ async def _handle_stream_select(
         )
 
     # 4. Delete the user's original message (with link)
-    try:
-        await telegram_client.delete_message(chat_id=chat_id, message_id=user_msg_id)
-    except HTTPError as exc:
-        logger.warning("Could not delete user message %s: %s", user_msg_id, exc)
+    # try:
+    #     await telegram_client.delete_message(chat_id=chat_id, message_id=user_msg_id)
+    # except HTTPError as exc:
+    #     logger.warning("Could not delete user message %s: %s", user_msg_id, exc)
 
     # 5. Delete the bot's message (containing buttons)
     try:
