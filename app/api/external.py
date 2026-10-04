@@ -50,6 +50,11 @@ async def get_streams_list(
     }
 
 
+@router.get("/streams/summary")
+async def get_streams_summary_endpoint(session: SessionDep):
+    return await get_streams_summary(session)
+
+
 @router.get("/streams/{stream_id}")
 async def get_stream_by_id_endpoint(
     stream_id: uuid.UUID,
@@ -109,8 +114,3 @@ async def streams_callback(
     await send_stream_quality_picker(chat_id, user_msg_id, streams_dicts, target_url)
 
     return {"received": True, "forwarded": True}
-
-
-@router.get("/streams/summary")
-async def get_streams_summary_endpoint(session: SessionDep):
-    return await get_streams_summary(session)
