@@ -1,5 +1,6 @@
 import uuid
 from datetime import UTC, datetime
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -441,7 +442,10 @@ async def get_stream_by_id(
 
 
 async def get_streams_summary(session: AsyncSession) -> dict[str, int]:
-    today_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+    local_midnight = datetime.now(ZoneInfo("Asia/Phnom_Penh")).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    today_start = local_midnight.astimezone(UTC).replace(tzinfo=None)
 
     def count_if(condition):
         return func.coalesce(func.sum(case((condition, 1), else_=0)), 0)
