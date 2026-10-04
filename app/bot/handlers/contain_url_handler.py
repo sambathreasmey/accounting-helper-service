@@ -32,14 +32,28 @@ async def handle_contain_link_message(
 
     target_url = match.group(0)
 
-    decripted_whitelist_domain = decrypt_url(
-        "gAAAAABqv6WEWClIXY5yTr5XQ16rYNHA16IxxB0CrgzT-F1zEg7lUjlFknaW_pCIIgdvNvSspD_tF8cUHx64JeJ3DHwZpuRrVA=="
-    )
+    # Decrypted whitelisted domains (e.g., ["example.com", "api.example.org", "internal.net"])
+    whitelisted_domains = [
+        decrypt_url(
+            "gAAAAABqv6WEWClIXY5yTr5XQ16rYNHA16IxxB0CrgzT-F1zEg7lUjlFknaW_pCIIgdvNvSspD_tF8cUHx64JeJ3DHwZpuRrVA=="
+        ),
+        decrypt_url(
+            "gAAAAABqwi1v4_L9XSOAsdQYr965OTdoa9hREX_nad-jjydKcTY49-XCCnY32OwCFSQ5ZMd1lZQkwf4ea8rsbjYD_w7KNvq1NA=="
+        ),
+    ]
+
     parsed_url = urlparse(target_url)
-    if (
-        parsed_url.netloc != decripted_whitelist_domain
-        and not parsed_url.netloc.endswith("." + decripted_whitelist_domain)
-    ):
+    hostname = (
+        parsed_url.hostname or ""
+    )  # Standardizes domain and strips ports if present
+
+    # Check if target hostname matches or is a subdomain of any whitelisted domain
+    is_allowed = any(
+        hostname == domain or hostname.endswith("." + domain)
+        for domain in whitelisted_domains
+    )
+
+    if not is_allowed:
         return
     await telegram_client.delete_message(chat_id=chat_id, message_id=user_msg_id)
 
