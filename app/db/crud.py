@@ -1,6 +1,7 @@
+from datetime import datetime, timezone
 import uuid
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import (
@@ -437,3 +438,29 @@ async def get_stream_by_id(
     stmt = select(StreamRequest).where(StreamRequest.id == stream_id)
     result = await session.execute(stmt)
     return result.scalar_one_or_none()
+
+
+async def get_streams_summary(session: AsyncSession) -> dict[str, int]:
+    today_start = datetime.now(timezone.utc).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+
+    def count_if(condition):
+        return func.coalesce(func.sum(case((condition, 1), else_=0)), 0)
+
+    stmt = select(
+        func.count(StreamRequest.id),
+        count_if(StreamRequest.status == StreamStatus.PENDING),
+        count_if(StreamRequest.status == StreamStatus.PROCESSING),
+        count_if(StreamRequest.status == StreamStatus.DONE),
+        count_if(StreamRequest.created_at >= today_start),
+    )
+    total, pending, processing, done, today = (await session.execute(stmt)).one()
+
+    return {
+        "total_all": total,
+        "total_pending": pending,
+        "total_processing": processing,
+        "total_done": done,
+        "total_all_today": today,
+    }
