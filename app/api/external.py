@@ -21,7 +21,6 @@ from app.schemas.stream import (
     StreamSegmentsUpdateRequest,
     StreamStatusUpdateRequest,
 )
-from app.services.edit_state import pop_pending_stream_request
 
 router = APIRouter(prefix="/api/external", tags=["External"])
 

@@ -215,9 +215,7 @@ class StreamRequest(Base):
     status: Mapped[StreamStatus] = mapped_column(
         Enum(StreamStatus), default=StreamStatus.PENDING
     )
-    segments: Mapped[list[Any] | None] = mapped_column(
-        JSONB, nullable=True
-    )
+    segments: Mapped[list[Any] | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     def to_dict(self) -> dict:
