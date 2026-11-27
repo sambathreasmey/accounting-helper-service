@@ -91,7 +91,9 @@ async def update_stream_segments_entry(
     body: StreamSegmentsUpdateRequest,
     session: SessionDep,
 ):
-    stream = await update_stream_segments(session, stream_id, body.segments)
+    stream = await update_stream_segments(
+        session, stream_id, body.segments.model_dump(by_alias=True)
+    )
     if stream is None:
         raise HTTPException(status_code=404, detail="Stream not found")
     return stream.to_dict()

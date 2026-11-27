@@ -429,7 +429,7 @@ async def update_stream_status(
 async def update_stream_segments(
     session: AsyncSession,
     stream_id: uuid.UUID,
-    segments: list[Any],
+    segments: dict[str, Any],
 ) -> StreamRequest | None:
     """Updates a stream request's segments. Returns None if it does not exist."""
     stream = await session.get(StreamRequest, stream_id)

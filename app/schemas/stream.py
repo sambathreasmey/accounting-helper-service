@@ -1,6 +1,4 @@
-from typing import Any
-
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.db.models import StreamStatus
 
@@ -9,8 +7,15 @@ class StreamStatusUpdateRequest(BaseModel):
     status: StreamStatus
 
 
+class StreamSegments(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    segment_url: str = Field(alias="segmentUrl")
+    segments_url: list[str] = Field(alias="segmentsUrl")
+
+
 class StreamSegmentsUpdateRequest(BaseModel):
-    segments: list[Any]
+    segments: StreamSegments
 
 
 class StreamCallbackStream(BaseModel):
