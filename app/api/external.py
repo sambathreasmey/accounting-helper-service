@@ -11,11 +11,16 @@ from app.db.crud import (
     get_stream,
     get_stream_by_id,
     get_streams_summary,
+    update_stream_segments,
     update_stream_status,
 )
 from app.db.database import get_session
 from app.db.models import StreamStatus
-from app.schemas.stream import StreamCallbackRequest, StreamStatusUpdateRequest
+from app.schemas.stream import (
+    StreamCallbackRequest,
+    StreamSegmentsUpdateRequest,
+    StreamStatusUpdateRequest,
+)
 from app.services.edit_state import pop_pending_stream_request
 
 router = APIRouter(prefix="/api/external", tags=["External"])
@@ -81,6 +86,18 @@ async def update_stream_status_entry(
     return stream.to_dict()
 
 
+@router.patch("/streams/{stream_id}/segments")
+async def update_stream_segments_entry(
+    stream_id: uuid.UUID,
+    body: StreamSegmentsUpdateRequest,
+    session: SessionDep,
+):
+    stream = await update_stream_segments(session, stream_id, body.segments)
+    if stream is None:
+        raise HTTPException(status_code=404, detail="Stream not found")
+    return stream.to_dict()
+
+
 @router.post("/streams/callback")
 async def streams_callback(
     body: StreamCallbackRequest,
@@ -90,16 +107,19 @@ async def streams_callback(
     if authorization != expected:
         raise HTTPException(status_code=401, detail="Invalid callback token")
 
-    pending = pop_pending_stream_request(body.request_id)
-    if pending is None:
-        # Either already handled, or an unrecognized/expired request_id
-        raise HTTPException(status_code=404, detail="Unknown or expired request_id")
+    # pending = pop_pending_stream_request(body.request_id)
+    # if pending is None:
+    #     # Either already handled, or an unrecognized/expired request_id
+    #     raise HTTPException(status_code=404, detail="Unknown or expired request_id")
 
     from app.services.telegram_client import telegram_client
 
-    chat_id = pending["chat_id"]
-    user_msg_id = pending["user_msg_id"]
-    target_url = pending["target_url"]
+    # chat_id = pending["chat_id"]
+    # user_msg_id = pending["user_msg_id"]
+    # target_url = pending["target_url"]
+    chat_id = 123456
+    user_msg_id = 123456
+    target_url = body.page_url
 
     if not body.success or not body.streams:
         await telegram_client.send_message(

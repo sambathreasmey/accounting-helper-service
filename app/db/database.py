@@ -45,33 +45,42 @@ async def ensure_schema_columns() -> None:
 
 def _ensure_schema_columns(conn) -> None:
     inspector = inspect(conn)
-    if not inspector.has_table("purchase_orders"):
-        return
+    if inspector.has_table("purchase_orders"):
+        purchase_orders_columns = {
+            column["name"] for column in inspector.get_columns("purchase_orders")
+        }
+        if "supplier_name" not in purchase_orders_columns:
+            conn.execute(
+                text(
+                    "ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS supplier_name TEXT"
+                )
+            )
 
-    purchase_orders_columns = {
-        column["name"] for column in inspector.get_columns("purchase_orders")
-    }
-    if "supplier_name" not in purchase_orders_columns:
+        if "supplier_id" not in purchase_orders_columns:
+            conn.execute(
+                text(
+                    "ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS supplier_id UUID"
+                )
+            )
+
         conn.execute(
             text(
-                "ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS supplier_name TEXT"
+                "UPDATE purchase_orders "
+                "SET supplier_name = (SELECT name FROM suppliers WHERE suppliers.id = purchase_orders.supplier_id) "
+                "WHERE supplier_name IS NULL AND supplier_id IS NOT NULL"
             )
         )
 
-    if "supplier_id" not in purchase_orders_columns:
-        conn.execute(
-            text(
-                "ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS supplier_id UUID"
+    if inspector.has_table("stream_requests"):
+        stream_request_columns = {
+            column["name"] for column in inspector.get_columns("stream_requests")
+        }
+        if "segments" not in stream_request_columns:
+            conn.execute(
+                text(
+                    "ALTER TABLE stream_requests ADD COLUMN IF NOT EXISTS segments JSONB"
+                )
             )
-        )
-
-    conn.execute(
-        text(
-            "UPDATE purchase_orders "
-            "SET supplier_name = (SELECT name FROM suppliers WHERE suppliers.id = purchase_orders.supplier_id) "
-            "WHERE supplier_name IS NULL AND supplier_id IS NOT NULL"
-        )
-    )
 
 
 async def init_models() -> None:

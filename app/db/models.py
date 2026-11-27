@@ -1,6 +1,7 @@
 import enum
 import uuid
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import (
     BigInteger,
@@ -214,6 +215,9 @@ class StreamRequest(Base):
     status: Mapped[StreamStatus] = mapped_column(
         Enum(StreamStatus), default=StreamStatus.PENDING
     )
+    segments: Mapped[list[Any] | None] = mapped_column(
+        JSONB, nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     def to_dict(self) -> dict:
@@ -225,6 +229,7 @@ class StreamRequest(Base):
             "status": self.status.value
             if hasattr(self.status, "value")
             else self.status,
+            "segments": self.segments,
             "user_msg_id": self.user_msg_id,
             "bot_msg_id": self.bot_msg_id,
             "url": self.url,

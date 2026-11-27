@@ -1,5 +1,6 @@
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import case, func, select
@@ -422,6 +423,22 @@ async def update_stream_status(
     await session.flush()
     await session.refresh(stream)
     await session.commit()
+    return stream
+
+
+async def update_stream_segments(
+    session: AsyncSession,
+    stream_id: uuid.UUID,
+    segments: list[Any],
+) -> StreamRequest | None:
+    """Updates a stream request's segments. Returns None if it does not exist."""
+    stream = await session.get(StreamRequest, stream_id)
+    if stream is None:
+        return None
+
+    stream.segments = segments
+    await session.commit()
+    await session.refresh(stream)
     return stream
 
 

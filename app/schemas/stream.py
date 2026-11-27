@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel
 
 from app.db.models import StreamStatus
@@ -5,6 +7,10 @@ from app.db.models import StreamStatus
 
 class StreamStatusUpdateRequest(BaseModel):
     status: StreamStatus
+
+
+class StreamSegmentsUpdateRequest(BaseModel):
+    segments: list[Any]
 
 
 class StreamCallbackStream(BaseModel):
